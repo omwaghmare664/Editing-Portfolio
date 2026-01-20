@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.css">
+    <title>Om Waghmare - Professional Video Editor</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-colour: #000811;
+            --secondary-colour: #fff;
+            --text-colour: #e0e0e0;
+            --strong-colour: #001b42;
+            --strong-light-colour: #002f70;
+            --accent-colour: #00a8ff;
+            --accent-glow: rgba(0, 168, 255, 0.3);
+            --card-bg: rgba(0, 27, 66, 0.4);
+            --nav-height: 70px;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--primary-colour);
+            color: var(--text-colour);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+        
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
+        }
+        
+        section {
+            width: 100%;
+            min-height: 100vh;
+            background: var(--primary-colour);
+            padding: 80px 5% 40px;
+            position: relative;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: auto;
+            height: var(--nav-height);
+            background: var(--strong-colour);
+            box-shadow: -10px 15px 0px var(--strong-light-colour);
+            border-radius: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 30px;
+            z-index: 1000;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        nav.scrolled {
+            top: 20px;
+            box-shadow: -5px 10px 0px var(--strong-light-colour), 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 40px;
+        }
+        
+        nav a {
+            font-weight: 500;
+            font-size: 1.1rem;
+            position: relative;
+            padding: 8px 0;
+        }
+        
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent-colour);
+            transition: width 0.3s ease;
+        }
+        
+        nav a:hover::after {
+            width: 100%;
+        }
+        
+        nav a:hover {
+            color: var(--accent-colour);
+        }
+        
+        /* Hero Section */
+        .section1 {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+        
+        .hero-content {
+            max-width: 900px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .hero-title {
+            font-size: 4.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            line-height: 1.1;
+            background: linear-gradient(135deg, var(--secondary-colour) 0%, var(--accent-colour) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeUp 0.8s ease forwards 0.2s;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.8rem;
+            font-weight: 300;
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeUp 0.8s ease forwards 0.5s;
+        }
+        
+        .hero-description {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 40px;
+            opacity: 0.9;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeUp 0.8s ease forwards 0.8s;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            padding: 16px 40px;
+            background: linear-gradient(135deg, var(--strong-colour) 0%, var(--accent-colour) 100%);
+            color: white;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeUp 0.8s ease forwards 1.1s;
+            box-shadow: 0 10px 30px rgba(0, 168, 255, 0.3);
+            border: none;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(135deg, var(--accent-colour) 0%, var(--strong-light-colour) 100%);
+            transition: width 0.5s ease;
+            z-index: -1;
+        }
+        
+        .cta-button:hover::before {
+            width: 100%;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 168, 255, 0.4);
+        }
+        
+        /* Floating video elements */
+        .video-element {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            background: var(--card-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--accent-colour);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            opacity: 0.7;
+        }
+        
+        .video-1 {
+            top: 15%;
+            left: 10%;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .video-2 {
+            top: 20%;
+            right: 15%;
+            animation: float 7s ease-in-out infinite 0.5s;
+        }
+        
+        .video-3 {
+            bottom: 25%;
+            left: 15%;
+            animation: float 8s ease-in-out infinite 1s;
+        }
+        
+        .video-4 {
+            bottom: 15%;
+            right: 10%;
+            animation: float 6.5s ease-in-out infinite 1.5s;
+        }
+        
+        /* Portfolio Section */
+        .section2 {
+            background: linear-gradient(to bottom, var(--primary-colour) 0%, #00122e 100%);
+            min-height: auto;
+            padding-top: 120px;
+        }
+        
+        .section-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            text-align: center;
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, transparent, var(--accent-colour), transparent);
+        }
+        
+        /* Category Filter */
+        .category-filter {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 50px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .category-btn {
+            padding: 12px 28px;
+            background: var(--card-bg);
+            border: 2px solid transparent;
+            border-radius: 50px;
+            color: var(--text-colour);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .category-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: var(--accent-colour);
+            transition: width 0.3s ease;
+            z-index: -1;
+        }
+        
+        .category-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 168, 255, 0.2);
+        }
+        
+        .category-btn:hover::before {
+            width: 100%;
+        }
+        
+        .category-btn.active {
+            background: var(--accent-colour);
+            color: white;
+            box-shadow: 0 10px 20px rgba(0, 168, 255, 0.3);
+        }
+        
+        /* Pinterest Style Video Grid */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        
+        .video-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            opacity: 0;
+            transform: translateY(30px);
+            cursor: pointer;
+        }
+        
+        .video-card.in-view {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .video-card:hover {
+            transform: translateY(-15px);
+            box-shadow: 0 25px 50px rgba(0, 168, 255, 0.2);
+        }
+        
+        .video-thumbnail {
+            width: 100%;
+            height: 250px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        
+        .video-card:hover .video-thumbnail img {
+            transform: scale(1.05);
+        }
+        
+        .video-play-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            width: 70px;
+            height: 70px;
+            background: rgba(0, 168, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.8rem;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+        
+        .video-thumbnail:hover .video-play-btn {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .video-category {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--accent-colour);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 2;
+        }
+        
+        .video-content {
+            padding: 20px;
+        }
+        
+        .video-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+        
+        .video-stats {
+            display: flex;
+            justify-content: space-between;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        
+        /* Video Player Modal */
+        .video-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 8, 17, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .video-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .modal-content {
+            width: 90%;
+            max-width: 1000px;
+            background: var(--strong-colour);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.4s ease;
+        }
+        
+        .video-modal.active .modal-content {
+            transform: scale(1);
+        }
+        
+        .modal-header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.8rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+        
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        }
+        
+        .modal-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+        
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-description {
+            color: #aaa;
+            line-height: 1.6;
+        }
+        
+        /* About Section - Psychology Optimized */
+        .section3 {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, #000811 0%, #00122e 100%);
+        }
+        
+        .about-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+        
+        .about-visual {
+            position: relative;
+            height: 500px;
+        }
+        
+        .visual-main {
+            width: 100%;
+            height: 100%;
+            background: var(--card-bg);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .visual-icon {
+            font-size: 8rem;
+            color: var(--accent-colour);
+            z-index: 2;
+        }
+        
+        .visual-bg {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(transparent, var(--accent-colour), transparent 30%);
+            animation: rotate 8s linear infinite;
+        }
+        
+        .about-content {
+            padding-right: 40px;
+        }
+        
+        .about-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 25px;
+            line-height: 1.2;
+            background: linear-gradient(135deg, var(--secondary-colour) 0%, var(--accent-colour) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .about-subtitle {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: var(--accent-colour);
+        }
+        
+        .about-description {
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+        
+        .psychology-highlights {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-top: 40px;
+        }
+        
+        .highlight-item {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--accent-colour);
+        }
+        
+        .highlight-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 168, 255, 0.2);
+        }
+        
+        .highlight-icon {
+            font-size: 2rem;
+            color: var(--accent-colour);
+            margin-bottom: 15px;
+        }
+        
+        .highlight-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .highlight-text {
+            font-size: 0.95rem;
+            color: #aaa;
+        }
+        
+        /* Contact Section */
+        .section4 {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 100vh;
+        }
+        
+        .contact-content {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .contact-form {
+            margin-top: 50px;
+            width: 100%;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 18px 20px;
+            background: var(--card-bg);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            color: var(--text-colour);
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-colour);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        
+        .form-label {
+            position: absolute;
+            top: 18px;
+            left: 20px;
+            color: #aaa;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus + .form-label,
+        .form-input:not(:placeholder-shown) + .form-label {
+            top: -10px;
+            left: 10px;
+            font-size: 0.85rem;
+            color: var(--accent-colour);
+            background: var(--primary-colour);
+            padding: 0 10px;
+        }
+        
+        .form-textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 40px;
+        }
+        
+        .social-link {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--text-colour);
+            transition: all 0.3s ease;
+        }
+        
+        .social-link:hover {
+            transform: translateY(-8px);
+            background: var(--accent-colour);
+            color: white;
+            box-shadow: 0 10px 20px rgba(0, 168, 255, 0.3);
+        }
+        
+        footer {
+            padding: 40px 5%;
+            text-align: center;
+            background: var(--strong-colour);
+        }
+        
+        .footer-text {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        /* Animations */
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(5deg);
+            }
+        }
+        
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.7;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .about-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .about-content {
+                padding-right: 0;
+            }
+            
+            .about-visual {
+                height: 400px;
+                order: -1;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .hero-title {
+                font-size: 3.5rem;
+            }
+            
+            .section-title {
+                font-size: 2.5rem;
+            }
+            
+            .psychology-highlights {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            nav {
+                padding: 0 20px;
+                top: 20px;
+            }
+            
+            nav ul {
+                gap: 20px;
+            }
+            
+            nav a {
+                font-size: 1rem;
+            }
+            
+            .hero-title {
+                font-size: 2.8rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.5rem;
+            }
+            
+            .section-title {
+                font-size: 2.2rem;
+            }
+            
+            .video-grid {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            }
+            
+            .category-filter {
+                gap: 10px;
+            }
+            
+            .category-btn {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+            
+            .about-title {
+                font-size: 2.5rem;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            nav ul {
+                gap: 15px;
+            }
+            
+            .hero-title {
+                font-size: 2.2rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .cta-button {
+                padding: 14px 30px;
+                font-size: 1rem;
+            }
+            
+            .video-element {
+                display: none;
+            }
+            
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .about-title {
+                font-size: 2rem;
+            }
+            
+            .visual-icon {
+                font-size: 5rem;
+            }
+        }
+        
+        /* Scroll progress indicator */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 4px;
+            background: linear-gradient(to right, var(--accent-colour), #00e0ff);
+            z-index: 1001;
+            transition: width 0.1s ease;
+        }
+        
+        /* Success message */
+        .success-message {
+            background: var(--success-color);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+            animation: fadeUp 0.5s ease;
+        }
+        
+        .success-message.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Scroll progress indicator -->
+    <div class="scroll-progress"></div>
+    
+    <!-- Navigation -->
+    <nav>
+        <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#portfolio">Portfolio</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section id="home" class="section1">
+        <div class="hero-content">
+            <h1 class="hero-title">Om Waghmare</h1>
+            <h2 class="hero-subtitle">Video Editor & Visual Storyteller</h2>
+            <p class="hero-description">Transforming ideas into compelling visual narratives through expert editing, cinematic color grading, and engaging motion design. Your story deserves to be seen and felt.</p>
+            <a href="#portfolio" class="cta-button">Explore My Work</a>
+        </div>
+        
+        <!-- Floating video elements -->
+        <div class="video-element video-1">
+            <i class="fas fa-film"></i>
+        </div>
+        <div class="video-element video-2">
+            <i class="fas fa-play-circle"></i>
+        </div>
+        <div class="video-element video-3">
+            <i class="fas fa-video"></i>
+        </div>
+        <div class="video-element video-4">
+            <i class="fas fa-sliders-h"></i>
+        </div>
+    </section>
+    
+    <!-- Portfolio Section -->
+    <section id="portfolio" class="section2">
+        <div class="container">
+            <h2 class="section-title">Video Portfolio</h2>
+            
+            <!-- Category Filter -->
+            <div class="category-filter">
+                <button class="category-btn active" data-category="all">All Projects</button>
+                <button class="category-btn" data-category="documentary">Documentary</button>
+                <button class="category-btn" data-category="content">Content</button>
+                <button class="category-btn" data-category="music">Music Video</button>
+                <button class="category-btn" data-category="reel">Reel Edit</button>
+                <button class="category-btn" data-category="movie">Movie Edit</button>
+            </div>
+            
+            <!-- Video Grid -->
+            <div class="video-grid">
+                <!-- Documentary Videos -->
+                <div class="video-card" data-category="documentary">
+                    <div class="video-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1536240478700-b869070f9279?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Wildlife Documentary">
+                        <div class="video-play-btn" data-video="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="video-category">Documentary</div>
+                    </div>
+                    <div class="video-content">
+                        <h3 class="video-title">Wildlife Conservation Journey</h3>
+                        <div class="video-stats">
+                            <span><i class="far fa-clock"></i> 12:45</span>
+                            <span><i class="far fa-eye"></i> 12.5K views</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Content Videos -->
+                <div class="video-card" data-category="content">
+                    <div class="video-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Tech Product Review">
+                        <div class="video-play-btn" data-video="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="video-category">Content</div>
+                    </div>
+                    <div class="video-content">
+                        <h3 class="video-title">Tech Innovation 2023 Review</h3>
+                        <div class="video-stats">
+                            <span><i class="far fa-clock"></i> 08:22</span>
+                            <span><i class="far fa-eye"></i> 45.2K views</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Music Videos -->
+                <div class="video-card" data-category="music">
+                    <div class="video-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1545235617-9465d2a55698?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Music Performance">
+                        <div class="video-play-btn" data-video="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="video-category">Music Video</div>
+                    </div>
+                    <div class="video-content">
+                        <h3 class="video-title">Urban Sounds - Midnight Sessions</h3>
+                        <div class="video-stats">
+                            <span><i class="far fa-clock"></i> 04:15</span>
+                            <span><i class="far fa-eye"></i> 102.4K views</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Reel Edits -->
+                <div class="video-card" data-category="reel">
+                    <div class="video-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1611605698335-8b1569810432?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Travel Reel">
+                        <div class="video-play-btn" data-video="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="video-category">Reel Edit</div>
+                    </div>
+                    <div class="video-content">
+                        <h3 class="video-title">24 Hours in Tokyo - Travel Reel</h3>
+                        <div class="video-stats">
+                            <span><i class="far fa-clock"></i> 00:45</span>
+                            <span><i class="far fa-eye"></i> 256.7K views</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Movie Edits -->
+                <div class="video-card" data-category="movie">
+                    <div class="video-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1489599809516-9827b6d1cf13?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Cinematic Edit">
+                        <div class="video-play-btn" data-video="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="video-category">Movie Edit</div>
+                    </div>
+                    <div class="video-content">
+                        <h3 class="video-title">Noir Nights - Cinematic Short</h3>
+                        <div class="video-stats">
+                            <span><i class="far fa-clock"></i> 05:30</span>
+                            <span><i class="far fa-eye"></i> 89.3K views</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Videos -->
+                <div class="video-card" data-category="documentary">
+                    <div class="video-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Cultural Documentary">
+                        <div class="video-play-btn" data-video="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="video-category">Documentary</div>
+                    </div>
+                    <div class="video-content">
+                        <h3 class="video-title">Vanishing Traditions</h3>
+                        <div class="video-stats">
+                            <span><i class="far fa-clock"></i> 22:10</span>
+                            <span><i class="far fa-eye"></i> 34.8K views</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="video-card" data-category="content">
+                    <div class="video-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1536240478700-b869070f9279?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Fitness Content">
+                        <div class="video-play-btn" data-video="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="video-category">Content</div>
+                    </div>
+                    <div class="video-content">
+                        <h3 class="video-title">30 Day Fitness Challenge</h3>
+                        <div class="video-stats">
+                            <span><i class="far fa-clock"></i> 10:05</span>
+                            <span><i class="far fa-eye"></i> 67.9K views</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="video-card" data-category="music">
+                    <div class="video-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1545235617-9465d2a55698?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Indie Music Video">
+                        <div class="video-play-btn" data-video="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="video-category">Music Video</div>
+                    </div>
+                    <div class="video-content">
+                        <h3 class="video-title">Indie Folk - Mountain Echoes</h3>
+                        <div class="video-stats">
+                            <span><i class="far fa-clock"></i> 03:45</span>
+                            <span><i class="far fa-eye"></i> 156.2K views</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Video Player Modal -->
+    <div class="video-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Video Preview</h3>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-video-container">
+                <video class="modal-video" controls>
+                    <source src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="modal-footer">
+                <p class="modal-description">Currently playing: <span id="current-video-title">Video Title</span></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- About Section - Psychology Optimized -->
+    <section id="about" class="section3">
+        <div class="container">
+            <div class="about-container">
+                <div class="about-content">
+                    <h2 class="about-title">Why Choose My Editing?</h2>
+                    <h3 class="about-subtitle">Psychology-Driven Visual Storytelling</h3>
+                    <p class="about-description">Great editing isn't just about cutting footage—it's about understanding how visuals affect emotions, attention, and memory. I use psychological principles to create videos that don't just look good, but feel right and stay with your audience.</p>
+                    
+                    <div class="psychology-highlights">
+                        <div class="highlight-item">
+                            <div class="highlight-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <h4 class="highlight-title">Cognitive Flow</h4>
+                            <p class="highlight-text">Pacing that matches human attention spans, creating natural viewing rhythm that keeps audiences engaged.</p>
+                        </div>
+                        
+                        <div class="highlight-item">
+                            <div class="highlight-icon">
+                                <i class="fas fa-heart"></i>
+                            </div>
+                            <h4 class="highlight-title">Emotional Resonance</h4>
+                            <p class="highlight-text">Strategic timing and music selection to trigger emotional responses that make content memorable.</p>
+                        </div>
+                        
+                        <div class="highlight-item">
+                            <div class="highlight-icon">
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <h4 class="highlight-title">Visual Hierarchy</h4>
+                            <p class="highlight-text">Guiding viewer attention through deliberate composition, color, and motion design.</p>
+                        </div>
+                        
+                        <div class="highlight-item">
+                            <div class="highlight-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h4 class="highlight-title">Retention Focused</h4>
+                            <p class="highlight-text">Editing techniques proven to increase viewer retention and message recall.</p>
+                        </div>
+                    </div>
+                    
+                    <a href="#contact" class="cta-button" style="margin-top: 40px;">Let's Create Something Memorable</a>
+                </div>
+                
+                <div class="about-visual">
+                    <div class="visual-main">
+                        <div class="visual-bg"></div>
+                        <div class="visual-icon">
+                            <i class="fas fa-film"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Contact Section -->
+    <section id="contact" class="section4">
+        <div class="container">
+            <div class="contact-content">
+                <h2 class="section-title">Ready to Collaborate?</h2>
+                <p>Tell me about your project. Whether it's a documentary, music video, or commercial content, I'll help bring your vision to life.</p>
+                
+                <form class="contact-form" id="contact-form" action="https://api.web3forms.com/submit" method="POST">
+                    <input type="hidden" name="access_key" value="3dbdc96c-cbc4-49bb-b170-fc63525468b9">
+                    <input type="hidden" name="subject" value="New Portfolio Contact Form Submission">
+                    <input type="checkbox" name="botcheck" style="display: none;">
+                    
+                    <div class="form-group">
+                        <input type="text" id="name" name="name" class="form-input" placeholder=" " required>
+                        <label for="name" class="form-label">Your Name</label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <input type="email" id="email" name="email" class="form-input" placeholder=" " required>
+                        <label for="email" class="form-label">Email Address</label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <select id="project-type" name="project_type" class="form-input" required style="color: var(--text-colour);">
+                            <option value="" disabled selected style="color: #777;">Select Project Type</option>
+                            <option value="documentary">Documentary</option>
+                            <option value="content">Content Video</option>
+                            <option value="music">Music Video</option>
+                            <option value="reel">Social Media Reel</option>
+                            <option value="movie">Movie/Short Film</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <label for="project-type" class="form-label">Project Type</label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <textarea id="message" name="message" class="form-input form-textarea" placeholder=" " required></textarea>
+                        <label for="message" class="form-label">Tell me about your project</label>
+                    </div>
+                    
+                    <button type="submit" class="cta-button" style="width: 100%;" id="submit-btn">Send Message</button>
+                    
+                    <div class="success-message" id="success-message">
+                        <i class="fas fa-check-circle"></i> Thank you! Your message has been sent successfully.
+                    </div>
+                </form>
+                
+                <div class="social-links">
+                    <a href="#" class="social-link">
+                        <i class="fab fa-youtube"></i>
+                    </a>
+                    <a href="#" class="social-link">
+                        <i class="fab fa-vimeo-v"></i>
+                    </a>
+                    <a href="#" class="social-link">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a href="#" class="social-link">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <footer>
+        <p class="footer-text">© 2023 Om Waghmare. Professional Video Editor & Motion Designer.</p>
+    </footer>
+
+    <script>
+        // Scroll progress indicator
+        const scrollProgress = document.querySelector('.scroll-progress');
+        window.addEventListener('scroll', () => {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            scrollProgress.style.width = scrolled + '%';
+        });
+        
+        // Navbar scroll effect
+        const nav = document.querySelector('nav');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 100) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+        
+        // Category Filter Functionality
+        const categoryBtns = document.querySelectorAll('.category-btn');
+        const videoCards = document.querySelectorAll('.video-card');
+        
+        categoryBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all buttons
+                categoryBtns.forEach(b => b.classList.remove('active'));
+                // Add active class to clicked button
+                btn.classList.add('active');
+                
+                const category = btn.getAttribute('data-category');
+                
+                // Filter videos
+                videoCards.forEach(card => {
+                    if (category === 'all' || card.getAttribute('data-category') === category) {
+                        card.style.display = 'block';
+                        setTimeout(() => {
+                            card.classList.add('in-view');
+                        }, 100);
+                    } else {
+                        card.classList.remove('in-view');
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+        
+        // Video Card Animation on Scroll
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-view');
+                }
+            });
+        }, observerOptions);
+        
+        videoCards.forEach(card => {
+            observer.observe(card);
+        });
+        
+        // Video Player Modal
+        const videoModal = document.querySelector('.video-modal');
+        const modalVideo = videoModal.querySelector('.modal-video');
+        const closeModalBtn = videoModal.querySelector('.close-modal');
+        const videoPlayBtns = document.querySelectorAll('.video-play-btn');
+        let currentPlayingVideo = null;
+        
+        // Function to open video modal
+        function openVideoModal(videoSrc, videoTitle) {
+            // Pause any currently playing video
+            if (currentPlayingVideo) {
+                currentPlayingVideo.pause();
+            }
+            
+            // Set new video source
+            modalVideo.src = videoSrc;
+            document.getElementById('current-video-title').textContent = videoTitle;
+            
+            // Show modal
+            videoModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            // Play video after a short delay
+            setTimeout(() => {
+                modalVideo.play();
+                currentPlayingVideo = modalVideo;
+            }, 400);
+        }
+        
+        // Function to close video modal
+        function closeVideoModal() {
+            videoModal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+            
+            // Pause video
+            if (modalVideo) {
+                modalVideo.pause();
+                currentPlayingVideo = null;
+            }
+        }
+        
+        // Add click events to video play buttons
+        videoPlayBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const videoSrc = btn.getAttribute('data-video');
+                const videoTitle = btn.closest('.video-card').querySelector('.video-title').textContent;
+                openVideoModal(videoSrc, videoTitle);
+            });
+        });
+        
+        // Close modal on button click
+        closeModalBtn.addEventListener('click', closeVideoModal);
+        
+        // Close modal on background click
+        videoModal.addEventListener('click', (e) => {
+            if (e.target === videoModal) {
+                closeVideoModal();
+            }
+        });
+        
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && videoModal.classList.contains('active')) {
+                closeVideoModal();
+            }
+        });
+        
+        // Pause video when modal closes
+        modalVideo.addEventListener('pause', () => {
+            currentPlayingVideo = null;
+        });
+        
+        // Smooth scroll for navigation links
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                
+                window.scrollTo({
+                    top: targetSection.offsetTop - 80,
+                    behavior: 'smooth'
+                });
+            });
+        });
+        
+        // Floating video elements hover effect
+        const videoElements = document.querySelectorAll('.video-element');
+        videoElements.forEach(element => {
+            element.addEventListener('mouseenter', () => {
+                element.style.transform = 'scale(1.2) rotate(10deg)';
+                element.style.opacity = '1';
+                element.style.boxShadow = '0 15px 30px rgba(0, 168, 255, 0.4)';
+            });
+            
+            element.addEventListener('mouseleave', () => {
+                element.style.transform = '';
+                element.style.opacity = '0.7';
+                element.style.boxShadow = '0 10px 20px rgba(0, 0, 0, 0.2)';
+            });
+        });
+        
+        // Form submission with Web3Forms
+        const contactForm = document.getElementById('contact-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const successMessage = document.getElementById('success-message');
+        
+        contactForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Change button text and disable
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            submitBtn.disabled = true;
+            
+            // Get form data
+            const formData = new FormData(contactForm);
+            
+            try {
+                // Send to Web3Forms
+                const response = await fetch('https://api.web3forms.com/submit', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success message
+                    successMessage.classList.add('active');
+                    contactForm.reset();
+                    
+                    // Reset button after 5 seconds
+                    setTimeout(() => {
+                        submitBtn.innerHTML = 'Send Message';
+                        submitBtn.disabled = false;
+                    }, 5000);
+                    
+                    // Hide success message after 8 seconds
+                    setTimeout(() => {
+                        successMessage.classList.remove('active');
+                    }, 8000);
+                } else {
+                    alert('There was an error sending your message. Please try again.');
+                    submitBtn.innerHTML = 'Send Message';
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                alert('There was an error sending your message. Please try again.');
+                submitBtn.innerHTML = 'Send Message';
+                submitBtn.disabled = false;
+            }
+        });
+        
+        // Initialize with navbar state
+        if (window.scrollY > 100) {
+            nav.classList.add('scrolled');
+        }
+    </script>
+</body>
+</html>
