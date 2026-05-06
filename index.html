@@ -126,10 +126,42 @@
             font-size: 1rem;
         }
 
-        /* SINGLE YOUTUBE PLAYER */
+        /* separate sections styling */
+        .video-category {
+            margin-bottom: 70px;
+        }
+
+        .category-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 28px;
+            border-left: 4px solid #3b82f6;
+            padding-left: 20px;
+        }
+
+        .category-title i {
+            font-size: 1.8rem;
+            color: #3b82f6;
+        }
+
+        .category-title h3 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: #f0f0f0;
+        }
+
+        .category-title p {
+            margin-left: auto;
+            color: #6b7280;
+            font-size: 0.85rem;
+        }
+
+        /* SINGLE YOUTUBE PLAYER (shared) */
         .player-wrapper {
             max-width: 900px;
-            margin: 0 auto 64px auto;
+            margin: 0 auto 48px auto;
             background: #111;
             border-radius: 20px;
             overflow: hidden;
@@ -153,7 +185,7 @@
             border: none;
         }
 
-        /* YouTube link grid */
+        /* YouTube link grid (common) */
         .work-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -230,6 +262,17 @@
             display: flex;
             align-items: center;
             gap: 6px;
+        }
+
+        .badge-type {
+            background: #1e293b;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 500;
+            display: inline-block;
+            margin-top: 6px;
+            color: #94a3b8;
         }
 
         /* About */
@@ -359,6 +402,8 @@
             .about-icon { order: -1; margin-bottom: 20px; }
             .nav-inner { gap: 28px; }
             .contact-card { padding: 28px; }
+            .category-title h3 { font-size: 1.4rem; }
+            .category-title i { font-size: 1.4rem; }
         }
     </style>
 </head>
@@ -387,7 +432,7 @@
     <div class="container">
         <div class="section-header">
             <h2>Featured Work</h2>
-            <p>Click any thumbnail — it plays right here</p>
+            <p>Click any thumbnail — it plays right here | Long form & Short form sections</p>
         </div>
 
         <div class="player-wrapper">
@@ -399,7 +444,39 @@
             </div>
         </div>
 
-        <div class="work-grid" id="videoGrid"></div>
+        <!-- ============================================= -->
+        <!-- LONG FORM VIDEOS SECTION                       -->
+        <!-- ============================================= -->
+        <!-- TO ADD MORE LONG FORM VIDEOS: 
+             Duplicate the line inside the array (between the square brackets), 
+             change the VIDEO_ID and optionally the TITLE.
+             Example: { id: "YOUR_VIDEO_ID", title: "Your video title" },
+        -->
+        <div class="video-category" id="longformSection">
+            <div class="category-title">
+                <i class="fas fa-film"></i>
+                <h3>Long Form Video</h3>
+                <p>cinematic narratives • documentaries • in-depth edits</p>
+            </div>
+            <div class="work-grid" id="longFormGrid"></div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- SHORT FORM VIDEOS SECTION                      -->
+        <!-- ============================================= -->
+        <!-- TO ADD MORE SHORT FORM VIDEOS: 
+             Duplicate the line inside the array (between the square brackets), 
+             change the VIDEO_ID and optionally the TITLE.
+             Example: { id: "YOUR_VIDEO_ID", title: "Your short title" },
+        -->
+        <div class="video-category" id="shortformSection">
+            <div class="category-title">
+                <i class="fas fa-mobile-alt"></i>
+                <h3>Short Form Video</h3>
+                <p>dynamic reels • vertical stories • high-impact cuts</p>
+            </div>
+            <div class="work-grid" id="shortFormGrid"></div>
+        </div>
     </div>
 </section>
 
@@ -411,13 +488,11 @@
                 <p>I'm a professional video editor with focus on rhythm, emotion, and clean aesthetics. From cinematic documentaries to premium edits, I make sure every frame serves the story.</p>
                 <div class="skills">
                     <span>Premiere Pro</span>
-    
                     <span>After Effects</span>
                     <span>Color Grading</span>
                     <span>Sound Design</span>
                     <span>Motion Graphics animation</span>
                     <span>Music Video reels</span>
-                    
                 </div>
             </div>
             <div class="about-icon">
@@ -473,63 +548,111 @@
 </footer>
 
 <script>
-    // Your 3 YouTube Shorts
-    const videoList = [
-        { id: "_Ueh86ScmIo", title: "Premium Motion graphic animation " },
-        { id: "kHrRK1xgZKU?feature=share", title: "Minecraft gaming short video edit" },
-        { id: "TEsSRgZqf1w", title: "Long form video editing" },
-        { id: "yNNVcut_NFQ", title: "Documentary like hair transplant Edit | Visual Storytelling" },
-        { id: "4pcxJTYLn4E", title: "Short Film Mood | Cinematic Edit" },
-        { id: "k_r4vZL7OOE", title: "The Real Hair Fall Solution | Narrative Edit" }
+    // ============================================================
+    //  VIDEO DATA - ADD YOUR VIDEOS HERE
+    // ============================================================
+    // INSTRUCTIONS: 
+    // 1. For LONG FORM videos: Add new objects inside the longFormVideos array below.
+    //    Each object: { id: "VIDEO_ID_FROM_YOUTUBE", title: "Your Title" }
+    //    (title is optional - you can keep it simple)
+    // 2. For SHORT FORM videos: Add new objects inside the shortFormVideos array.
+    //    Each object: { id: "VIDEO_ID_FROM_YOUTUBE", title: "Your Title" }
+    // 3. Just duplicate the line and change the ID. That's it.
+    // ============================================================
+
+    // ----- LONG FORM VIDEOS -----
+    const longFormVideos = [
+        { id: "Gll8HyEPpsM", title: "Long form cinematic documentary" },
+        { id: "L_-zO1D43Ec", title: "Documentary style: Hair Transplant" },
+        { id: "TEsSRgZqf1w", title: "Short Film Mood | Cinematic" }
+        // 👇 DUPLICATE THIS LINE AND CHANGE THE VIDEO ID TO ADD MORE LONG FORM VIDEOS
+        // { id: "NEW_VIDEO_ID_HERE", title: "Your long form title" },
     ];
 
+    // ----- SHORT FORM VIDEOS -----
+    const shortFormVideos = [
+        { id: "_Ueh86ScmIo", title: "Premium Motion graphic animation" },
+        { id: "kHrRK1xgZKU", title: "Minecraft gaming short edit" },
+        { id: "QPrUeHqcHxI", title: "Fast-paced Instagram Reel" },
+        { id: "yneYMsaoxbo", title: "Viral Style Short Edit" },
+        // 👇 DUPLICATE THIS LINE AND CHANGE THE VIDEO ID TO ADD MORE SHORT FORM VIDEOS
+        // { id: "ANOTHER_SHORT_ID", title: "Short form title" },
+    ];
+
+    // ============================================================
+    // DON'T EDIT BELOW THIS LINE (unless you know what you're doing)
+    // ============================================================
+    
     const playerFrame = document.getElementById('youtubePlayer');
-    const gridContainer = document.getElementById('videoGrid');
+    const longGridContainer = document.getElementById('longFormGrid');
+    const shortGridContainer = document.getElementById('shortFormGrid');
+
+    function cleanVideoId(rawId) {
+        if (!rawId) return '';
+        return rawId.split('?')[0].split('&')[0];
+    }
 
     function loadVideo(videoId) {
-        const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+        let cleanId = cleanVideoId(videoId);
+        const embedUrl = `https://www.youtube.com/embed/${cleanId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
         playerFrame.src = embedUrl;
         document.querySelector('.player-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function getThumbnail(videoId) {
-        return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        let clean = cleanVideoId(videoId);
+        return `https://img.youtube.com/vi/${clean}/maxresdefault.jpg`;
     }
 
-    function renderGrid() {
-        gridContainer.innerHTML = '';
-        videoList.forEach((video, idx) => {
+    function renderCategoryGrid(container, videos, categoryType) {
+        if (!container) return;
+        container.innerHTML = '';
+        
+        if (videos.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:40px; color:#6b7280;">Add videos in the script section above ⬆️</div>';
+            return;
+        }
+        
+        videos.forEach((video, idx) => {
+            const cleanId = cleanVideoId(video.id);
+            if (!cleanId) return;
+            
             const card = document.createElement('div');
             card.className = 'youtube-card';
-            card.setAttribute('data-id', video.id);
+            card.setAttribute('data-id', cleanId);
             
-            const thumbUrl = getThumbnail(video.id);
+            const thumbUrl = getThumbnail(cleanId);
+            const badgeText = categoryType === 'long' ? 'Long Form' : 'Short / Reel';
+            const badgeIcon = categoryType === 'long' ? '<i class="fas fa-clock"></i>' : '<i class="fas fa-bolt"></i>';
+            const displayTitle = video.title || (categoryType === 'long' ? 'Long Form Video' : 'Short Video');
+            
             card.innerHTML = `
                 <div class="thumb">
-                    <img src="${thumbUrl}" alt="${video.title}" loading="lazy" onerror="this.src='https://img.youtube.com/vi/${video.id}/hqdefault.jpg'">
+                    <img src="${thumbUrl}" alt="${escapeHtml(displayTitle)}" loading="lazy" onerror="this.src='https://img.youtube.com/vi/${cleanId}/hqdefault.jpg'">
                     <div class="play-badge">
                         <i class="fab fa-youtube"></i>
                     </div>
                 </div>
                 <div class="card-info">
-                    <h3>${escapeHtml(video.title)}</h3>
-                    <span><i class="fab fa-youtube" style="font-size: 0.7rem;"></i> YouTube Short</span>
+                    <h3>${escapeHtml(displayTitle)}</h3>
+                    <span>${badgeIcon} ${badgeText}</span>
                 </div>
             `;
             
-            card.addEventListener('click', () => loadVideo(video.id));
-            gridContainer.appendChild(card);
+            card.addEventListener('click', () => loadVideo(cleanId));
+            container.appendChild(card);
         });
         
         // subtle fade animation
-        const cards = document.querySelectorAll('.youtube-card');
+        const cards = container.querySelectorAll('.youtube-card');
         cards.forEach((card, idx) => {
             card.style.opacity = '0';
-            card.style.animation = `fadeUp 0.4s ease forwards ${idx * 0.08}s`;
+            card.style.animation = `fadeUp 0.4s ease forwards ${idx * 0.06}s`;
         });
     }
     
     function escapeHtml(str) {
+        if (!str) return '';
         return str.replace(/[&<>]/g, function(m) {
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
@@ -538,11 +661,22 @@
         });
     }
 
-    renderGrid();
+    // Render both sections with cleaned IDs
+    const cleanedLong = longFormVideos.map(v => ({ ...v, id: cleanVideoId(v.id) })).filter(v => v.id);
+    const cleanedShort = shortFormVideos.map(v => ({ ...v, id: cleanVideoId(v.id) })).filter(v => v.id);
     
-    // Set first video as default (no autoplay initially)
-    if (videoList.length > 0) {
-        playerFrame.src = `https://www.youtube.com/embed/${videoList[0].id}?autoplay=0&rel=0&modestbranding=1`;
+    renderCategoryGrid(longGridContainer, cleanedLong, 'long');
+    renderCategoryGrid(shortGridContainer, cleanedShort, 'short');
+    
+    // Set default video to first long form or first short
+    if (cleanedLong.length > 0) {
+        let defaultId = cleanedLong[0].id;
+        playerFrame.src = `https://www.youtube.com/embed/${defaultId}?autoplay=0&rel=0&modestbranding=1`;
+    } else if (cleanedShort.length > 0) {
+        let defaultId = cleanedShort[0].id;
+        playerFrame.src = `https://www.youtube.com/embed/${defaultId}?autoplay=0&rel=0&modestbranding=1`;
+    } else {
+        playerFrame.src = `https://www.youtube.com/embed/fNz-4ZUmf6I?rel=0&modestbranding=1`;
     }
     
     // Contact form handler
@@ -607,6 +741,22 @@
         } else {
             nav.style.background = 'rgba(10,10,10,0.9)';
         }
+    });
+    
+    // Fix for thumbnail errors
+    document.addEventListener('DOMContentLoaded', () => {
+        const allImages = document.querySelectorAll('.thumb img');
+        allImages.forEach(img => {
+            img.addEventListener('error', function() {
+                if (!this.src.includes('hqdefault')) {
+                    const parentCard = this.closest('.youtube-card');
+                    if (parentCard && parentCard.getAttribute('data-id')) {
+                        let vidId = parentCard.getAttribute('data-id');
+                        this.src = `https://img.youtube.com/vi/${vidId}/hqdefault.jpg`;
+                    }
+                }
+            });
+        });
     });
 </script>
 </body>
