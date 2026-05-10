@@ -428,6 +428,13 @@
   position: relative;
   z-index: 2;
 }
+        .hero::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55); /* change opacity here */
+  z-index: 1;
+}
     </style>
     <div class="container">
         <div class="hero-content">
