@@ -436,7 +436,7 @@
   z-index: 1;
 }
     </style>
-    <div class="container">
+    <div class="container flex">
         <div class="hero-content">
             <h1>Om Waghmare<br><span class="hero-highlight">Video Editor</span></h1>
             <div class="hero-desc">Hi I am Om a Video editor with 6+ years of experience in making premium styles, visuals and smoothness in video. I aim for making your content not just viral edit but also attention grabbing visuals that make viewer to process and think.</div>
@@ -450,6 +450,44 @@
                 <a href="#contact" class="btn-outline" style="margin-left: 16px;">start project →</a>
             </div>
         </div>
+        <img src="/Comp 1_00000.jpg" alt="pfp" width="450px" height="450px" class="pfp"/>
+        <style>
+            .pfp {
+                position: relative;
+                border-radius: 100%;
+                z-index: 1;
+                    animation: floatWiggle 4s ease-in-out infinite;
+  transform-origin: center;
+
+
+                left: -50px;
+            }
+          @keyframes floatWiggle {
+  0% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+
+  25% {
+    transform: translateY(-6px) translateX(2px) rotate(1deg);
+  }
+
+  50% {
+    transform: translateY(-10px) translateX(0px) rotate(0deg);
+  }
+
+  75% {
+    transform: translateY(-6px) translateX(-2px) rotate(-1deg);
+  }
+
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+}  .container.flex {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        </style>
     </div>
 </section>
 
