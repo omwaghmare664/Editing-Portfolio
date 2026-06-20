@@ -1,21 +1,58 @@
 {
+  "categories": {
+    "motion": {
+      "name": "Motion Graphics",
+      "icon": "fa-cubes",
+      "image": "category/mo.jpg",
+      "videos": [
+        "jrb40f3MnwQ",
+        "zLG5BGiR4y0",
+        "Q1R1MV026xI"
+      ]
+    },
+    "documentary": {
+      "name": "Documentary",
+      "icon": "fa-film",
+      "image": "category/de.jpg",
+      "videos": [
+        "V0dXZvgog_o",
+        "QDsApWM99_k"
+      ]
+    },
+    "gaming": {
+      "name": "Gaming Edits",
+      "icon": "fa-gamepad",
+      "image": "category/ge.jpg",
+      "videos": [
+        "qRVYFMIbdSo",
+        "PWkunB0Qfys",
+        "MzLQq21iNfA",
+        "ylINj108K5c"
+      ]
+    },
+    "shortform": {
+      "name": "Short Reels",
+      "icon": "fa-mobile-alt",
+      "image": "category/sr.jpg",
+      "videos": [
+        "z81f30b5clA",
+        "qD1uNwtJYbQ",
+        "5dasO_xT7QI"
+      ]
+    },
+    "other": {
+      "name": "Other Projects",
+      "icon": "fa-folder-open",
+      "image": "category/other.jpg",
+      "videos": [
+        "Dot_EzkQGSk",
+        "HGK0MiTDELk",
+        "yneYMsaoxbo"
+      ]
+    }
+  },
   "thumbnails": [
-    "minecraft_thumbnail_1.jpg",
-    "HowIMade.jpg"
-  ],
-  "longForm": [
-    "jrb40f3MnwQ",
-    "TEsSRgZqf1w",
-    "qRVYFMIbdSo",
-    "MzLQq21iNfA",
-    "ylINj108K5c"
-  ],
-  "shortForm": [
-    "_Ueh86ScmIo",
-    "kHrRK1xgZKU",
-    "5dasO_xT7QI",
-    "Dot_EzkQGSk",
-    "HGK0MiTDELk",
-    "yneYMsaoxbo"
+    "thumbnails/minecraft_thumbnail_1.jpg",
+    "thumbnails/HowIMade.jpg"
   ]
 }
