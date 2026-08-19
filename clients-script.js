@@ -16,6 +16,20 @@ const clientsData = [
         subscribers: "24k",
         badge: "Short form editing"
     },
+    {
+        name: "PW College Wallah",
+        handle: "@CollegeWallahbyPWSkills",
+        avatar: "https://yt3.googleusercontent.com/b7X5taC9A8ivQ50vZE8hUC0PuxvlrZlq5bvJAWjOpNr7P_Ffc-V0KHLuCGNPlGWsfWgqs4v1-A=s160-c-k-c0x00ffffff-no-rj",
+        subscribers: "1m",
+        badge: "Short form editing"
+    },
+    {
+        name: "PW Institute of Innovation",
+        handle: "@PW-IOI",
+        avatar: "https://yt3.googleusercontent.com/mXREkBuLGPj_1h5X1QaIqOfJmGiSlHTrVZQmK8R2BSmZppCmSVr43M9MQEyNbzGUHfEr45zz-Q=s160-c-k-c0x00ffffff-no-rj",
+        subscribers: "28k",
+        badge: "Short form editing"
+    },
 ];
 
 // ==========================================
