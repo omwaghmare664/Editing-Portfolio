@@ -1090,24 +1090,46 @@
             <p>Let's bring your vision to cut</p>
         </div>
         <div class="contact-card">
-            <form id="contactForm" action="https://api.web3forms.com/submit" method="POST">
-                <input type="hidden" name="access_key" value="3dbdc96c-cbc4-49bb-b170-fc63525468b9">
-                <input type="hidden" name="subject" value="Edit Inquiry - Om Waghmare">
-                <div style="margin-bottom: 18px;"><input type="text" name="name" placeholder="your name" required></div>
-                <div style="margin-bottom: 18px;"><input type="email" name="email" placeholder="email address" required></div>
-                <div style="margin-bottom: 18px;">
-                    <select name="project_type" required>
-                        <option value="" disabled selected>project type</option>
-                        <option>YouTube longform</option>
-                        <option>Instagram / TikTok reel</option>
-                        <option>Documentary / short film</option>
-                        <option>Commercial / brand film</option>
-                    </select>
-                </div>
-                <div style="margin-bottom: 24px;"><textarea rows="4" name="message" placeholder="describe your project, deadline and creative references..." required></textarea></div>
-                <button type="submit" id="submitBtn"><i class="fas fa-paper-plane"></i> send inquiry</button>
-                <div id="formFeedback" style="margin-top: 16px; font-size: 0.75rem; text-align: center; display: none;"></div>
-            </form>
+           <form id="contactForm" action="https://api.web3forms.com/submit" method="POST">
+    <input type="hidden" name="access_key" value="3dbdc96c-cbc4-49bb-b170-fc63525468b9">
+    <input type="hidden" name="subject" value="Edit Inquiry - Om Waghmare">
+
+    <div style="margin-bottom: 18px;">
+        <input type="text" name="name" placeholder="your name" required>
+    </div>
+
+    <div style="margin-bottom: 18px;">
+        <input type="email" name="email" placeholder="email address" required>
+    </div>
+
+    <div style="margin-bottom: 18px;">
+        <input type="tel" name="whatsapp" placeholder="whatsapp number" required>
+    </div>
+
+    <div style="margin-bottom: 18px;">
+        <select name="project_type" required>
+            <option value="" disabled selected>project type</option>
+            <option>YouTube longform</option>
+            <option>Instagram / TikTok reel</option>
+            <option>Documentary / short film</option>
+            <option>Commercial / brand film</option>
+        </select>
+    </div>
+
+    <div style="margin-bottom: 18px;">
+        <input type="text" name="budget" placeholder="estimated budget (e.g. $50 - $100)">
+    </div>
+
+    <div style="margin-bottom: 24px;">
+        <textarea rows="4" name="message" placeholder="describe your project, deadline and creative references..." required></textarea>
+    </div>
+
+    <button type="submit" id="submitBtn">
+        <i class="fas fa-paper-plane"></i> send inquiry
+    </button>
+
+    <div id="formFeedback" style="margin-top: 16px; font-size: 0.75rem; text-align: center; display: none;"></div>
+</form>
         </div>
         <div class="social-links">
             <a href="https://www.youtube.com/@omeditz.ae_664" target="_blank"><i class="fab fa-youtube"></i></a>
