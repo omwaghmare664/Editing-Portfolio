@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Om Edits — Invoice Generator</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #eef1f5;
+      color: #18202a;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      line-height: 1.4;
+    }
+    .app {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px;
+    }
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 22px;
+    }
+    .brand {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -.5px;
+    }
+    .brand span { color: #667085; }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 18px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.15s, transform 0.05s;
+      font-family: inherit;
+    }
+    button:active { transform: scale(0.98); }
+    .primary {
+      background: #171b22;
+      color: #fff;
+    }
+    .primary:hover { background: #2c313a; }
+    .secondary {
+      background: #fff;
+      border: 1px solid #d9dee7;
+      color: #18202a;
+    }
+    .secondary:hover { background: #f8f9fc; }
+    .layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+    .panel {
+      background: #fff;
+      border: 1px solid #dde2ea;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 4px 18px rgba(16, 24, 40, .05);
+    }
+    .panel h2 {
+      font-size: 15px;
+      margin: 0 0 16px;
+      font-weight: 800;
+      color: #171b22;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #667085;
+      margin: 13px 0 6px;
+    }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid #d5dbe5;
+      border-radius: 8px;
+      padding: 10px 11px;
+      font: inherit;
+      font-size: 13px;
+      background: #fff;
+      transition: border 0.15s, box-shadow 0.15s;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #171b22;
+      box-shadow: 0 0 0 2px rgba(23,27,34,0.1);
+    }
+    input[readonly] {
+      background: #f5f6f8;
+      color: #667085;
+      cursor: not-allowed;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 65px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+    .invoice-wrap {
+      overflow-x: auto;
+      padding-bottom: 10px;
+    }
+    .invoice {
+      width: 794px;
+      min-height: 1123px;
+      background: #fff;
+      margin: auto;
+      padding: 54px 58px;
+      box-shadow: 0 8px 30px rgba(16, 24, 40, .10);
+      position: relative;
+      border-radius: 2px;
+      transition: all 0.15s;
+    }
+    .invoice-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 30px;
+      padding-bottom: 30px;
+      border-bottom: 2px solid #171b22;
+    }
+    .logo {
+      font-size: 25px;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+    .logo-sub {
+      font-size: 10px;
+      color: #667085;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+    }
+    .inv-title {
+      text-align: right;
+    }
+    .inv-title h1 {
+      margin: 0;
+      font-size: 34px;
+      letter-spacing: 1px;
+    }
+    .inv-title p {
+      margin: 7px 0 0;
+      color: #667085;
+      font-size: 12px;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 35px;
+      padding: 30px 0;
+    }
+    .meta h3 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #98a2b3;
+      margin: 0 0 7px;
+    }
+    .meta p {
+      margin: 3px 0;
+      font-size: 13px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .items {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+    }
+    .items th {
+      text-align: left;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: #667085;
+      background: #f5f6f8;
+      padding: 11px;
+      font-weight: 700;
+    }
+    .items td {
+      padding: 15px 11px;
+      border-bottom: 1px solid #e8ebef;
+      font-size: 12px;
+      vertical-align: top;
+    }
+    .items .right {
+      text-align: right;
+    }
+    .summary {
+      margin-left: auto;
+      width: 280px;
+      margin-top: 20px;
+    }
+    .sumrow {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 12px;
+    }
+    .total {
+      border-top: 2px solid #171b22;
+      margin-top: 7px;
+      padding-top: 12px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .status {
+      display: inline-block;
+      border: 1px solid #b7e0c2;
+      background: #edf9f0;
+      color: #19733a;
+      border-radius: 99px;
+      padding: 5px 10px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+    .status.unpaid {
+      border-color: #f5c2c2;
+      background: #fdeeee;
+      color: #b02a2a;
+    }
+    .status.pending {
+      border-color: #f5e0b2;
+      background: #fef9e7;
+      color: #9e6b0b;
+    }
+    .notes {
+      margin-top: 48px;
+      border-top: 1px solid #e8ebef;
+      padding-top: 18px;
+    }
+    .notes h3 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #98a2b3;
+      margin: 0 0 7px;
+    }
+    .notes p {
+      font-size: 11px;
+      color: #667085;
+      line-height: 1.6;
+      margin: 0;
+      word-break: break-word;
+    }
+    .footer {
+      position: absolute;
+      bottom: 38px;
+      left: 58px;
+      right: 58px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: #98a2b3;
+    }
+    .paid-stamp {
+      display: none;
+    }
+    .invoice.paid .paid-stamp {
+      display: block;
+      position: absolute;
+      right: 55px;
+      top: 185px;
+      transform: rotate(-8deg);
+      border: 3px solid #19733a;
+      color: #19733a;
+      padding: 8px 13px;
+      border-radius: 7px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 2px;
+    }
+
+    /* Responsive */
+    @media (max-width: 850px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .invoice {
+        width: 100%;
+        min-height: auto;
+        padding: 30px 25px;
+      }
+      .invoice-wrap {
+        padding-bottom: 20px;
+      }
+      .footer {
+        position: static;
+        margin-top: 30px;
+        padding-top: 10px;
+        border-top: 1px solid #e8ebef;
+        left: auto;
+        right: auto;
+        bottom: auto;
+      }
+      .invoice-head {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .inv-title {
+        text-align: left;
+      }
+      .meta {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .summary {
+        width: 100%;
+      }
+      .paid-stamp {
+        right: 20px;
+        top: 140px;
+        font-size: 14px;
+        padding: 5px 10px;
+      }
+    }
+    @media (max-width: 480px) {
+      .app { padding: 16px 12px; }
+      .panel { padding: 16px; }
+      .row { grid-template-columns: 1fr; }
+      .invoice { padding: 20px 16px; }
+      .items th, .items td { padding: 8px 6px; font-size: 11px; }
+      .items th { font-size: 9px; }
+    }
+
+    /* Print / PDF */
+    @media print {
+      body {
+        background: #fff;
+      }
+      .app {
+        padding: 0;
+        max-width: 100%;
+      }
+      .topbar, .panel {
+        display: none;
+      }
+      .layout {
+        display: block;
+      }
+      .invoice-wrap {
+        overflow: visible;
+        padding: 0;
+      }
+      .invoice {
+        box-shadow: none;
+        margin: 0;
+        width: 100%;
+        min-height: 297mm;
+        padding: 15mm;
+        border-radius: 0;
+      }
+      .footer {
+        left: 15mm;
+        right: 15mm;
+        bottom: 10mm;
+      }
+      .paid-stamp {
+        right: 55px;
+        top: 185px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .status {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">Om <span>Edits</span> <small style="font-size:11px;color:#98a2b3">/ INVOICE GENERATOR</small></div>
+    <div class="actions">
+      <button class="secondary" onclick="resetForm()">Reset</button>
+      <button class="primary" onclick="window.print()">Print / Save PDF</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="panel">
+      <h2>Invoice details</h2>
+      <div class="row">
+        <div><label>Invoice #</label><input id="invoiceNo" value="INV-2026-001"></div>
+        <div><label>Status</label><select id="status"><option value="paid">Paid</option><option value="unpaid">Unpaid</option><option value="pending">Pending</option></select></div>
+      </div>
+      <div class="row">
+        <div><label>Issue date (auto)</label><input id="issueDate" type="date" readonly></div>
+        <div><label>Due date</label><input id="dueDate" type="date"></div>
+      </div>
+
+      <h2 style="margin-top:24px">Your details</h2>
+      <label>Name / Business</label><input id="fromName" value="Om Waghmare">
+      <label>Brand / Title</label><input id="fromBrand" value="Om Edits">
+      <label>Email</label><input id="fromEmail" placeholder="your@email.com">
+      <label>WhatsApp / Contact</label><input id="fromPhone" placeholder="+91 ...">
+
+      <h2 style="margin-top:24px">Client details</h2>
+      <label>Client name / Company</label><input id="clientName" placeholder="Client Name">
+      <label>Email</label><input id="clientEmail" placeholder="client@email.com">
+      <label>Phone number</label><input id="clientPhone" placeholder="+1 (555) 000-0000">
+      <label>Address (optional)</label><textarea id="clientAddress" placeholder="City, Country"></textarea>
+
+      <h2 style="margin-top:24px">Project</h2>
+      <label>Description</label><textarea id="description" placeholder="Premium short-form video editing"></textarea>
+      <div class="row">
+        <div><label>Quantity</label><input id="qty" type="number" value="1" min="1"></div>
+        <div><label>Rate</label><input id="rate" type="number" value="60" min="0" step="0.01"></div>
+      </div>
+      <label>Currency</label>
+      <select id="currency"><option value="$">USD ($)</option><option value="₹">INR (₹)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option></select>
+      <label>Payment method / reference</label><input id="payment" placeholder="PayPal / UPI / Wise / Transaction ID">
+      <label>Notes</label><textarea id="notes">Thank you for working with Om Edits. Payment received in full.</textarea>
+    </aside>
+
+    <main class="invoice-wrap">
+      <section class="invoice" id="invoice">
+        <div class="paid-stamp">PAID</div>
+        <header class="invoice-head">
+          <div><div class="logo" id="vFromBrand">Om Edits</div><div class="logo-sub">Video Editing & Motion Design</div></div>
+          <div class="inv-title"><h1>INVOICE</h1><p id="vInvoiceNo">INV-2026-001</p></div>
+        </header>
+
+        <div class="meta">
+          <div>
+            <h3>From</h3>
+            <p><strong id="vFromName">Om Waghmare</strong></p>
+            <p id="vFromEmail"></p>
+            <p id="vFromPhone"></p>
+          </div>
+          <div>
+            <h3>Bill To</h3>
+            <p><strong id="vClientName">Client Name</strong></p>
+            <p id="vClientEmail"></p>
+            <p id="vClientPhone"></p>
+            <p id="vClientAddress"></p>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div>
+            <span style="font-size:11px;color:#98a2b3">Issue date:</span> <strong style="font-size:11px" id="vIssueDate"></strong>
+            &nbsp; <span style="font-size:11px;color:#98a2b3">Due:</span> <strong style="font-size:11px" id="vDueDate"></strong>
+          </div>
+          <span class="status" id="vStatus">PAID</span>
+        </div>
+
+        <table class="items">
+          <thead><tr><th>Description</th><th class="right">Qty</th><th class="right">Rate</th><th class="right">Amount</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong id="vDescription">Premium short-form video editing</strong><br><span style="color:#98a2b3">Professional editing service</span></td>
+              <td class="right" id="vQty">1</td>
+              <td class="right" id="vRate">$60.00</td>
+              <td class="right" id="vAmount">$60.00</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="summary">
+          <div class="sumrow"><span>Subtotal</span><strong id="vSubtotal">$60.00</strong></div>
+          <div class="sumrow total"><span>Total</span><strong id="vTotal">$60.00</strong></div>
+        </div>
+
+        <div class="notes">
+          <h3>Payment & Notes</h3>
+          <p><strong>Payment:</strong> <span id="vPayment">—</span></p>
+          <p style="margin-top:5px" id="vNotes">Thank you for working with Om Edits. Payment received in full.</p>
+        </div>
+        <div class="footer">
+          <span>Om Edits · Professional Video Editing</span>
+          <span id="vFooterNo">INV-2026-001</span>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+  // ---- Helpers ----
+  const $ = id => document.getElementById(id);
+
+  // Auto-fetch current date for Issue date (readonly)
+  function setIssueDateToToday() {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    $('issueDate').value = `${yyyy}-${mm}-${dd}`;
+  }
+
+  // ---- All dynamic input IDs ----
+  const ids = [
+    'invoiceNo','status','issueDate','dueDate',
+    'fromName','fromBrand','fromEmail','fromPhone',
+    'clientName','clientEmail','clientPhone','clientAddress',
+    'description','qty','rate','currency','payment','notes'
+  ];
+
+  // ---- Format currency ----
+  function money(n) {
+    return $('currency').value + Number(n || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  // ---- Format date (for display) ----
+  function fmtDate(v) {
+    if (!v) return '—';
+    const d = new Date(v + 'T00:00:00');
+    return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  // ---- Main update function ----
+  function update() {
+    const q = Math.max(0, Number($('qty').value) || 0);
+    const r = Math.max(0, Number($('rate').value) || 0);
+    const total = q * r;
+
+    // Invoice number
+    const invNo = $('invoiceNo').value || '—';
+    $('vInvoiceNo').textContent = invNo;
+    $('vFooterNo').textContent = invNo;
+
+    // From
+    $('vFromName').textContent = $('fromName').value || '—';
+    $('vFromBrand').textContent = $('fromBrand').value || 'Om Edits';
+    $('vFromEmail').textContent = $('fromEmail').value;
+    $('vFromPhone').textContent = $('fromPhone').value;
+
+    // Client
+    $('vClientName').textContent = $('clientName').value || 'Client Name';
+    $('vClientEmail').textContent = $('clientEmail').value;
+    $('vClientPhone').textContent = $('clientPhone').value;
+    $('vClientAddress').textContent = $('clientAddress').value;
+
+    // Description and line items
+    $('vDescription').textContent = $('description').value || 'Video editing services';
+    $('vQty').textContent = q;
+    $('vRate').textContent = money(r);
+    $('vAmount').textContent = money(total);
+    $('vSubtotal').textContent = money(total);
+    $('vTotal').textContent = money(total);
+
+    // Dates — Issue date is auto-set, but still display it
+    $('vIssueDate').textContent = fmtDate($('issueDate').value);
+    $('vDueDate').textContent = fmtDate($('dueDate').value);
+
+    // Payment & notes
+    $('vPayment').textContent = $('payment').value || '—';
+    $('vNotes').textContent = $('notes').value;
+
+    // Status badge + stamp
+    const s = $('status').value;
+    const statusEl = $('vStatus');
+    statusEl.textContent = s.toUpperCase();
+    statusEl.className = 'status ' + s;
+    $('invoice').classList.toggle('paid', s === 'paid');
+  }
+
+  // ---- Reset form (auto date + defaults) ----
+  function resetForm() {
+    // Auto-set issue date to today
+    setIssueDateToToday();
+
+    // Set due date to today (user can change)
+    $('dueDate').value = $('issueDate').value;
+
+    // Reset text fields to defaults
+    $('invoiceNo').value = 'INV-2026-001';
+    $('status').value = 'paid';
+
+    $('fromName').value = 'Om Waghmare';
+    $('fromBrand').value = 'Om Edits';
+    $('fromEmail').value = '';
+    $('fromPhone').value = '';
+
+    $('clientName').value = '';
+    $('clientEmail').value = '';
+    $('clientPhone').value = '';
+    $('clientAddress').value = '';
+
+    $('description').value = '';
+    $('qty').value = 1;
+    $('rate').value = 60;
+    $('currency').value = '$';
+    $('payment').value = '';
+    $('notes').value = 'Thank you for working with Om Edits. Payment received in full.';
+
+    update();
+  }
+
+  // ---- Initialization ----
+  function init() {
+    // Auto-set issue date to today
+    setIssueDateToToday();
+
+    // Default due date = today (user can change)
+    if (!$('dueDate').value) {
+      $('dueDate').value = $('issueDate').value;
+    }
+
+    // Attach listeners for real-time updates
+    ids.forEach(id => {
+      const el = $(id);
+      if (el) {
+        el.addEventListener('input', update);
+        el.addEventListener('change', update);
+      }
+    });
+
+    // Initial render
+    update();
+  }
+
+  // Run on page load
+  window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
