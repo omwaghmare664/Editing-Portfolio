@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Om Edits — Invoice Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -48,17 +49,18 @@
       font-family: inherit;
     }
     button:active { transform: scale(0.98); }
+    button:disabled { opacity: .6; cursor: not-allowed; }
     .primary {
       background: #171b22;
       color: #fff;
     }
-    .primary:hover { background: #2c313a; }
+    .primary:hover:not(:disabled) { background: #2c313a; }
     .secondary {
       background: #fff;
       border: 1px solid #d9dee7;
       color: #18202a;
     }
-    .secondary:hover { background: #f8f9fc; }
+    .secondary:hover:not(:disabled) { background: #f8f9fc; }
     .layout {
       display: grid;
       grid-template-columns: 340px 1fr;
@@ -113,6 +115,25 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 9px;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+      cursor: pointer;
+      accent-color: #171b22;
+    }
+    .checkbox-row label {
+      margin: 0;
+      font-size: 12px;
+      color: #667085;
+      cursor: pointer;
+      user-select: none;
     }
     .invoice-wrap {
       overflow-x: auto;
@@ -291,6 +312,50 @@
       letter-spacing: 2px;
     }
 
+    /* Download overlay */
+    .download-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(23, 27, 34, .55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      backdrop-filter: blur(3px);
+    }
+    .download-overlay.active { display: flex; }
+    .download-card {
+      background: #fff;
+      padding: 28px 36px;
+      border-radius: 14px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      min-width: 260px;
+    }
+    .download-card .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #e8ebef;
+      border-top-color: #171b22;
+      border-radius: 50%;
+      margin: 0 auto 14px;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .download-card p {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #171b22;
+    }
+    .download-card small {
+      display: block;
+      margin-top: 6px;
+      font-size: 11px;
+      color: #667085;
+      font-weight: 500;
+    }
+
     /* Responsive */
     @media (max-width: 850px) {
       .layout {
@@ -343,25 +408,13 @@
       .items th { font-size: 9px; }
     }
 
-    /* Print / PDF */
+    /* Print */
     @media print {
-      body {
-        background: #fff;
-      }
-      .app {
-        padding: 0;
-        max-width: 100%;
-      }
-      .topbar, .panel {
-        display: none;
-      }
-      .layout {
-        display: block;
-      }
-      .invoice-wrap {
-        overflow: visible;
-        padding: 0;
-      }
+      body { background: #fff; }
+      .app { padding: 0; max-width: 100%; }
+      .topbar, .panel, .download-overlay { display: none !important; }
+      .layout { display: block; }
+      .invoice-wrap { overflow: visible; padding: 0; }
       .invoice {
         box-shadow: none;
         margin: 0;
@@ -370,11 +423,7 @@
         padding: 15mm;
         border-radius: 0;
       }
-      .footer {
-        left: 15mm;
-        right: 15mm;
-        bottom: 10mm;
-      }
+      .footer { left: 15mm; right: 15mm; bottom: 10mm; }
       .paid-stamp {
         right: 55px;
         top: 185px;
@@ -394,7 +443,7 @@
     <div class="brand">Om <span>Edits</span> <small style="font-size:11px;color:#98a2b3">/ INVOICE GENERATOR</small></div>
     <div class="actions">
       <button class="secondary" onclick="resetForm()">Reset</button>
-      <button class="primary" onclick="window.print()">Print / Save PDF</button>
+      <button class="primary" id="downloadBtn" onclick="downloadInvoice()">⬇ Download HD Image</button>
     </div>
   </div>
 
@@ -425,9 +474,20 @@
       <h2 style="margin-top:24px">Project</h2>
       <label>Description</label><textarea id="description" placeholder="Premium short-form video editing"></textarea>
       <div class="row">
-        <div><label>Quantity</label><input id="qty" type="number" value="1" min="1"></div>
+        <div><label>Quantity</label><input id="qty" type="number" value="1" min="0" step="1"></div>
         <div><label>Rate</label><input id="rate" type="number" value="60" min="0" step="0.01"></div>
       </div>
+
+      <h2 style="margin-top:24px">Revisions</h2>
+      <div class="row">
+        <div><label>Number of revisions</label><input id="revisionCount" type="number" value="0" min="0" step="1"></div>
+        <div><label>Price per revision</label><input id="revisionPrice" type="number" value="0" min="0" step="0.01"></div>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="sameRevisionPrice" checked>
+        <label for="sameRevisionPrice">All revisions have the same price</label>
+      </div>
+
       <label>Currency</label>
       <select id="currency"><option value="$">USD ($)</option><option value="₹">INR (₹)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option></select>
       <label>Payment method / reference</label><input id="payment" placeholder="PayPal / UPI / Wise / Transaction ID">
@@ -467,7 +527,14 @@
         </div>
 
         <table class="items">
-          <thead><tr><th>Description</th><th class="right">Qty</th><th class="right">Rate</th><th class="right">Amount</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="right">Qty</th>
+              <th class="right">Rate</th>
+              <th class="right">Amount</th>
+            </tr>
+          </thead>
           <tbody>
             <tr>
               <td><strong id="vDescription">Premium short-form video editing</strong><br><span style="color:#98a2b3">Professional editing service</span></td>
@@ -475,11 +542,22 @@
               <td class="right" id="vRate">$60.00</td>
               <td class="right" id="vAmount">$60.00</td>
             </tr>
+            <tr id="revisionRow" style="display:none">
+              <td>
+                <strong>Revisions</strong>
+                <br>
+                <span style="color:#98a2b3" id="vRevisionLabel">0 revisions × $0.00</span>
+              </td>
+              <td class="right" id="vRevisionCount">0</td>
+              <td class="right" id="vRevisionPrice">$0.00</td>
+              <td class="right" id="vRevisionAmount">$0.00</td>
+            </tr>
           </tbody>
         </table>
 
         <div class="summary">
           <div class="sumrow"><span>Subtotal</span><strong id="vSubtotal">$60.00</strong></div>
+          <div class="sumrow" id="revisionSumRow" style="display:none"><span>Revisions</span><strong id="vRevisionSum">$0.00</strong></div>
           <div class="sumrow total"><span>Total</span><strong id="vTotal">$60.00</strong></div>
         </div>
 
@@ -497,11 +575,19 @@
   </div>
 </div>
 
+<!-- Download overlay -->
+<div class="download-overlay" id="downloadOverlay">
+  <div class="download-card">
+    <div class="spinner"></div>
+    <p>Generating HD image…</p>
+    <small>Please wait, this may take a few seconds</small>
+  </div>
+</div>
+
 <script>
-  // ---- Helpers ----
+  // ---------- Helpers ----------
   const $ = id => document.getElementById(id);
 
-  // Auto-fetch current date for Issue date (readonly)
   function setIssueDateToToday() {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -510,15 +596,15 @@
     $('issueDate').value = `${yyyy}-${mm}-${dd}`;
   }
 
-  // ---- All dynamic input IDs ----
   const ids = [
     'invoiceNo','status','issueDate','dueDate',
     'fromName','fromBrand','fromEmail','fromPhone',
     'clientName','clientEmail','clientPhone','clientAddress',
-    'description','qty','rate','currency','payment','notes'
+    'description','qty','rate',
+    'revisionCount','revisionPrice','sameRevisionPrice',
+    'currency','payment','notes'
   ];
 
-  // ---- Format currency ----
   function money(n) {
     return $('currency').value + Number(n || 0).toLocaleString(undefined, {
       minimumFractionDigits: 2,
@@ -526,18 +612,23 @@
     });
   }
 
-  // ---- Format date (for display) ----
   function fmtDate(v) {
     if (!v) return '—';
     const d = new Date(v + 'T00:00:00');
     return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  // ---- Main update function ----
+  // ---------- Main update ----------
   function update() {
     const q = Math.max(0, Number($('qty').value) || 0);
     const r = Math.max(0, Number($('rate').value) || 0);
-    const total = q * r;
+    const baseTotal = q * r;
+
+    const revCount = Math.max(0, Math.floor(Number($('revisionCount').value) || 0));
+    const revPrice = Math.max(0, Number($('revisionPrice').value) || 0);
+    const revTotal = revCount * revPrice;
+
+    const grandTotal = baseTotal + revTotal;
 
     // Invoice number
     const invNo = $('invoiceNo').value || '—';
@@ -556,15 +647,35 @@
     $('vClientPhone').textContent = $('clientPhone').value;
     $('vClientAddress').textContent = $('clientAddress').value;
 
-    // Description and line items
+    // Base item
     $('vDescription').textContent = $('description').value || 'Video editing services';
     $('vQty').textContent = q;
     $('vRate').textContent = money(r);
-    $('vAmount').textContent = money(total);
-    $('vSubtotal').textContent = money(total);
-    $('vTotal').textContent = money(total);
+    $('vAmount').textContent = money(baseTotal);
 
-    // Dates — Issue date is auto-set, but still display it
+    // Revision row
+    if (revCount > 0) {
+      $('revisionRow').style.display = '';
+      $('revisionSumRow').style.display = '';
+      $('vRevisionCount').textContent = revCount;
+      $('vRevisionPrice').textContent = money(revPrice);
+      $('vRevisionAmount').textContent = money(revTotal);
+      $('vRevisionSum').textContent = money(revTotal);
+
+      const same = $('sameRevisionPrice').checked;
+      $('vRevisionLabel').textContent = same
+        ? `${revCount} revision${revCount > 1 ? 's' : ''} × ${money(revPrice)} (same price)`
+        : `${revCount} revision${revCount > 1 ? 's' : ''} × varying prices`;
+    } else {
+      $('revisionRow').style.display = 'none';
+      $('revisionSumRow').style.display = 'none';
+    }
+
+    // Totals
+    $('vSubtotal').textContent = money(baseTotal);
+    $('vTotal').textContent = money(grandTotal);
+
+    // Dates
     $('vIssueDate').textContent = fmtDate($('issueDate').value);
     $('vDueDate').textContent = fmtDate($('dueDate').value);
 
@@ -572,7 +683,7 @@
     $('vPayment').textContent = $('payment').value || '—';
     $('vNotes').textContent = $('notes').value;
 
-    // Status badge + stamp
+    // Status
     const s = $('status').value;
     const statusEl = $('vStatus');
     statusEl.textContent = s.toUpperCase();
@@ -580,15 +691,11 @@
     $('invoice').classList.toggle('paid', s === 'paid');
   }
 
-  // ---- Reset form (auto date + defaults) ----
+  // ---------- Reset ----------
   function resetForm() {
-    // Auto-set issue date to today
     setIssueDateToToday();
-
-    // Set due date to today (user can change)
     $('dueDate').value = $('issueDate').value;
 
-    // Reset text fields to defaults
     $('invoiceNo').value = 'INV-2026-001';
     $('status').value = 'paid';
 
@@ -605,6 +712,11 @@
     $('description').value = '';
     $('qty').value = 1;
     $('rate').value = 60;
+
+    $('revisionCount').value = 0;
+    $('revisionPrice').value = 0;
+    $('sameRevisionPrice').checked = true;
+
     $('currency').value = '$';
     $('payment').value = '';
     $('notes').value = 'Thank you for working with Om Edits. Payment received in full.';
@@ -612,30 +724,95 @@
     update();
   }
 
-  // ---- Initialization ----
-  function init() {
-    // Auto-set issue date to today
-    setIssueDateToToday();
+  // ---------- Download HD image ----------
+  async function downloadInvoice() {
+    const invoice = $('invoice');
+    const overlay = $('downloadOverlay');
+    const btn = $('downloadBtn');
 
-    // Default due date = today (user can change)
-    if (!$('dueDate').value) {
-      $('dueDate').value = $('issueDate').value;
+    // Guard: html2canvas must be loaded
+    if (typeof html2canvas === 'undefined') {
+      alert('Download library failed to load. Please check your internet connection and refresh the page.');
+      return;
     }
 
-    // Attach listeners for real-time updates
+    btn.disabled = true;
+    overlay.classList.add('active');
+
+    try {
+      // Temporarily neutralize transforms/shadows that can cause blur
+      const originalShadow = invoice.style.boxShadow;
+      const originalRadius = invoice.style.borderRadius;
+      invoice.style.boxShadow = 'none';
+      invoice.style.borderRadius = '0';
+
+      // Render at 3x scale for crisp HD output
+      const canvas = await html2canvas(invoice, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: invoice.scrollWidth,
+        windowHeight: invoice.scrollHeight
+      });
+
+      // Restore
+      invoice.style.boxShadow = originalShadow;
+      invoice.style.borderRadius = originalRadius;
+
+      // Convert to blob + download
+      canvas.toBlob(function(blob) {
+        if (!blob) {
+          alert('Failed to generate image. Please try again.');
+          btn.disabled = false;
+          overlay.classList.remove('active');
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        // Build filename from invoice number
+        const rawNo = ($('invoiceNo').value || 'INV').trim().replace(/[^a-zA-Z0-9-_]/g, '_');
+        const clientSafe = ($('clientName').value || 'Client').trim().replace(/[^a-zA-Z0-9-_]/g, '_');
+        link.download = `${rawNo}_${clientSafe}.png`;
+        link.href = url;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        overlay.classList.remove('active');
+        btn.disabled = false;
+      }, 'image/png', 1.0);
+    } catch (err) {
+      console.error('Download error:', err);
+      invoice.style.boxShadow = '';
+      invoice.style.borderRadius = '';
+      overlay.classList.remove('active');
+      btn.disabled = false;
+      alert('Something went wrong while generating the image. Please try again.');
+    }
+  }
+
+  // ---------- Init ----------
+  function init() {
+    setIssueDateToToday();
+    if (!$('dueDate').value) $('dueDate').value = $('issueDate').value;
+
     ids.forEach(id => {
       const el = $(id);
-      if (el) {
-        el.addEventListener('input', update);
-        el.addEventListener('change', update);
-      }
+      if (!el) return;
+      el.addEventListener('input', update);
+      el.addEventListener('change', update);
     });
 
-    // Initial render
+    // Disable "price per revision" input if not applicable? Keep enabled — user may still want to set it.
     update();
   }
 
-  // Run on page load
   window.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
