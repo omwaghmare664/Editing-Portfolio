@@ -1625,3 +1625,76 @@ main > section + section {
     transform: none !important;
   }
 }
+
+
+/* ==========================================================================
+   18d. PHONE — EDITORIAL PRUNING
+   "Compact full" means the page should still feel dense, but every fact
+   shown should be a fact the reader doesn't already have.
+
+   Rule for inclusion below: an element is hidden only when it is
+   (a) duplicated elsewhere in the same scroll, or (b) pure decoration.
+   Nothing that exists exactly once is removed.
+   ========================================================================== */
+
+@media (max-width: 767px) {
+
+  /* --- Header chrome ------------------------------------------------ */
+
+  /* "Remote · From India" — restated verbatim in the footer copyright. */
+  .header-location { display: none; }
+
+  /* --- Hero --------------------------------------------------------- */
+
+  /* "Portfolio 2026 / Video Editor / Remote · India (UTC+5:30)" —
+     "Video Editor" is .hero-role on the very next line, the location is
+     in the footer. Three stacked meta rows at the top of the page is the
+     densest region on a phone. Remove the whole strip. */
+  .hero-eyebrow { display: none; }
+
+  /* Same three tools, listed with more detail in .toolchain. */
+  .hero-role-tools { display: none; }
+
+  /* 40 words of bio at 15px. The same voice survives in .about-pull and
+     .about-body. On a phone this paragraph is what pushes the showreel
+     below the fold — it is the single biggest density cost in the hero. */
+  .hero-copy { display: none; }
+
+  /* --- About -------------------------------------------------------- */
+
+  /* Repeats the wordmark that is already in the header and footer band. */
+  .about-portrait figcaption { display: none; }
+
+  /* "Based in India / Works remote, globally / Started late 2020 /
+     On PC since 2023" — every one of these is already stated in prose
+     inside .about-body ("I started my journey in late 2020… Later, in
+     2023…") or in the footer line. Four ruled rows, zero new facts. */
+  .about-facts { display: none; }
+
+  /* --- Section heads ------------------------------------------------ */
+
+  /* 00:00:12:00, 00:00:34:00 etc. — atmosphere on desktop, noise on a
+     phone. The section index (01–05) already carries the sequence. */
+  .section-timecode { display: none; }
+
+  /* With the timecode gone the head is one column; collapse the grid so
+     the title isn't squeezed against an empty auto column. */
+  .section-head { grid-template-columns: 1fr; }
+
+  /* --- Footer ------------------------------------------------------- */
+
+  /* "Set in Instrument Serif and JetBrains Mono" — a note to other
+     designers, not to a client. */
+  .footer-colophon { display: none; }
+
+  /* Local time in IST — already live in the header clock. */
+  .footer-clock { display: none; }
+
+  /* "END OF REEL" — decorative sign-off, no information. */
+  .footer-tag { display: none; }
+
+  /* YouTube / Instagram / Discord — all three are linked again in
+     .contact-direct two sections up, same URLs, larger tap targets. */
+  .footer-socials { display: none; }
+
+}
