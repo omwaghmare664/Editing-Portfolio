@@ -1,14 +1,46 @@
 {
   "categories": {
     "motion": {
-      "name": "Motion Graphics",
+      "name": "SaaS Motion Graphics",
       "icon": "fa-cubes",
       "image": "category/mo.jpg",
       "videos": [
-        "jrb40f3MnwQ",
+        "1viBfGMXfS0",
+        "T6Fbb2_8mlY",
         "zLG5BGiR4y0",
-        "Q1R1MV026xI",
-        "1viBfGMXfS0"
+        "Q1R1MV026xI"
+      ]
+    },
+    "graphic reel": {
+      "name": "Motion graphics reel",
+      "icon": "fa-cubes",
+      "image": "category/mo.jpg",
+      "videos": [
+        "z81f30b5clA",
+      "b1-N7ZNckis",
+        "sZBBW3B-6AM",
+       "6Sq9uOV6W98"
+      ]
+    },
+    
+    "shortform": {
+      "name": "Talking Head",
+      "icon": "fa-mobile-alt",
+      "image": "category/sr.jpg",
+      "videos": [
+        
+        "5dasO_xT7QI",
+        "4O6HMSDieUE"
+      ]
+    },
+    "Reels": {
+      "name": "Reels/Other",
+      "icon": "fa-mobile-alt",
+      "image": "category/sr.jpg",
+      "videos": [
+        "qD1uNwtJYbQ",
+        "z10Wp-AVZYs",
+        "2ISanboq8Oc"
       ]
     },
     "documentary": {
@@ -30,18 +62,6 @@
         "PWkunB0Qfys",
         "MzLQq21iNfA",
         "ylINj108K5c"
-      ]
-    },
-    "shortform": {
-      "name": "Short Reels",
-      "icon": "fa-mobile-alt",
-      "image": "category/sr.jpg",
-      "videos": [
-        "z81f30b5clA",
-        "qD1uNwtJYbQ",
-        "5dasO_xT7QI",
-        "4O6HMSDieUE",
-        "6Sq9uOV6W98"
       ]
     },
     "other": {

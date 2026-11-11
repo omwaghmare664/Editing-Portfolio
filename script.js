@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
       buildGrid(data.categories);
       setShowreel(data.categories);
       
+      // DEFAULT VIEW: Apply 'motion' filter on load
+      applyFilter('motion');
+
       // Initialize GSAP animations AFTER grid is built
       if (typeof gsap !== 'undefined') {
         gsap.registerPlugin(ScrollTrigger);
@@ -89,7 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return btn;
     };
 
-    filterRow.appendChild(createBtn('all', 'All Work'));
+    // REMOVED: filterRow.appendChild(createBtn('all', 'All Work'));
+    // Only create buttons for the actual categories
     for (const [slug, cat] of Object.entries(categories)) {
       filterRow.appendChild(createBtn(slug, cat.name));
     }
@@ -100,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let visibleCount = 0;
     
     allCards.forEach(card => {
-      const match = activeSlug === 'all' || card.dataset.category === activeSlug;
+      const match = card.dataset.category === activeSlug;
       card.hidden = !match;
       if (match) visibleCount++;
     });
@@ -109,13 +113,15 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.setAttribute('aria-pressed', String(btn.dataset.filter === activeSlug));
     });
 
-    if (counter) counter.textContent = `${visibleCount} of ${allCards.length} projects`;
-    if (resetBtn) resetBtn.hidden = activeSlug === 'all';
+    if (counter) counter.textContent = `${visibleCount} projects`;
+    
+    // Since there is no "All Work" button anymore, hide the reset button permanently
+    if (resetBtn) resetBtn.hidden = true;
     
     if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
   }
 
-  if (resetBtn) resetBtn.onclick = () => applyFilter('all');
+  // Reset button logic removed since "All" view no longer exists
 
   // --- 6. Fast Modal Player ---
   function openModal(videoId) {
@@ -204,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     gsap.utils.toArray('[data-reveal="rise"]').forEach(el => {
       gsap.fromTo(el, 
-        { y: 30, opacity: 0 },
+        { y: 30, opacity: 0 }, 
         { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", scrollTrigger: el }
       );
     });
