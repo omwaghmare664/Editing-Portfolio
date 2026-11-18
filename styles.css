@@ -4,6 +4,7 @@
 --sh-l:0 4px 8px rgba(0,0,0,.05),0 24px 48px rgba(0,0,0,.10),0 60px 120px rgba(20,60,30,.16);
 --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Helvetica Neue",Arial,sans-serif}
 *,*::before,*::after{box-sizing:border-box;margin:0}
+html{font-size:clamp(13px,.55vw + 9px,16px)}
 html.lenis,html.lenis body{height:auto}.lenis.lenis-smooth{scroll-behavior:auto!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);overflow-x:hidden;-webkit-font-smoothing:antialiased;letter-spacing:-.011em;padding-bottom:env(safe-area-inset-bottom,0)}
 body::before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none;background:radial-gradient(50vw 50vw at 0 0,rgba(190,245,170,.30),transparent 70%),radial-gradient(55vw 55vw at 100% 38%,rgba(205,250,165,.24),transparent 70%),radial-gradient(60vw 60vw at 8% 100%,rgba(170,240,205,.24),transparent 70%);animation:amb 22s ease-in-out infinite alternate}
@@ -33,7 +34,7 @@ h1,h2{font-weight:800;letter-spacing:-.045em;line-height:1}
 /* hero */
 .hero{min-height:100vh;padding:9rem 0 6rem;text-align:center}
 .chip{display:inline-flex;align-items:center;gap:.6rem;padding:.35rem 1rem .35rem .35rem;border-radius:999px;font-size:.82rem;font-weight:600;margin-bottom:2rem}
-.hero-title{font-size:clamp(3rem,9.5vw,8.6rem)}.ln{display:block}
+.hero-title{font-size:clamp(2.6rem,min(9.5vw,15vh),8.6rem)}.ln{display:block}
 .sub{margin:1.6rem auto 2.2rem;max-width:520px;color:var(--mute);font-size:1.15rem;line-height:1.5}
 .row{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap}
 .hero-reel{max-width:1040px;margin:4.5rem auto 0}
@@ -65,9 +66,9 @@ h1,h2{font-weight:800;letter-spacing:-.045em;line-height:1}
 /* sections */
 .sec-head{margin-bottom:2.2rem}.sec-head h2{font-size:clamp(2.2rem,6vw,5rem)}
 .counter{margin-top:1rem;font-size:.78rem;font-weight:600;letter-spacing:.14em;color:var(--mute);font-variant-numeric:tabular-nums}
-.reels{height:100vh;overflow:hidden;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(180deg,rgba(232,250,220,0),rgba(232,250,220,.6) 50%,rgba(232,250,220,0))}
+.reels{height:100vh;height:100svh;overflow:hidden;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(180deg,rgba(232,250,220,0),rgba(232,250,220,.6) 50%,rgba(232,250,220,0))}
 .reels .sec-head{padding:0 6vw}
-.rail{--rw:min(290px,60vw);display:flex;gap:clamp(3rem,8vw,7rem);padding:0 calc(50vw - var(--rw)/2);width:max-content}
+.rail{--rw:max(170px,min(290px,60vw,calc((100svh - 15rem)*.5625)));display:flex;gap:clamp(3rem,8vw,7rem);padding:0 calc(50vw - var(--rw)/2);width:max-content}
 .rail .player{width:var(--rw);flex:none}.rail .player:nth-child(2){translate:0 -22px}
 .films{padding:9rem 0 6rem}.films .player{width:min(800px,100%);margin-bottom:5rem}.films .player.r{margin-left:auto}
 
@@ -109,4 +110,10 @@ h1,h2{font-weight:800;letter-spacing:-.045em;line-height:1}
 .footer small{opacity:.5}
 
 @media(max-width:900px){.about-grid{grid-template-columns:1fr;gap:2.5rem}.me{position:static;max-width:420px;margin:0 auto;width:100%}}
-@media(max-width:700px){.nav{gap:.05rem;padding:.3rem}.nav>a:not(.npfp){padding:.45rem .6rem;font-size:.76rem}.nname{display:none}.npfp{width:36px;height:36px}.npfp.sm{width:28px;height:28px}.stats{grid-template-columns:1fr}.hero{padding-top:7.5rem}.rail{--rw:70vw}.bar .time{display:none}}
+@media(max-width:700px){.nav{gap:.05rem;padding:.3rem}.nav>a:not(.npfp){padding:.45rem .6rem;font-size:.76rem}.nname{display:none}.npfp{width:36px;height:36px}.npfp.sm{width:28px;height:28px}.stats{grid-template-columns:1fr}.hero{padding-top:7.5rem}.rail{--rw:max(170px,min(70vw,calc((100svh - 14rem)*.5625)))}.bar .time{display:none}}
+
+/* short / small screens: keep the pinned reels fully inside the viewport */
+.reels .sec-head{margin-bottom:clamp(.8rem,3vh,2.2rem)}
+.reels .sec-head h2{font-size:clamp(1.8rem,min(5vw,7.5vh),4rem)}
+.reels .eyebrow{margin-bottom:.5rem}.counter{margin-top:.6rem}
+@media(max-height:720px){.hero{padding:7rem 0 4rem}.hero-reel{margin-top:3rem}.films{padding:5rem 0 3rem}.cta-card{padding:4rem 2rem}.footer .big{font-size:clamp(3rem,min(15vw,24vh),13rem)}}
