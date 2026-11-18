@@ -139,3 +139,6 @@ h1,h2{font-weight:800;letter-spacing:-.045em;line-height:1}
 .av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;font-size:.7rem;font-weight:700;color:#fff;background:linear-gradient(145deg,#b8f34a,#22c55e 70%,#15803d)}
 .rcard.g .av,.rcard.d .av{background:rgba(255,255,255,.2)}
 @media(max-width:700px){.rcard{width:min(250px,74%);padding:1rem}.rcard p{font-size:.85rem}.gravity{height:540px}}
+
+.stars em{font-style:normal;font-size:.78rem;font-weight:700;margin-left:.45rem;line-height:14px;color:#1d1d1f}
+.rcard.g .stars em,.rcard.d .stars em{color:#fff}
