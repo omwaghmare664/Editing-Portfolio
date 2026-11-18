@@ -111,7 +111,15 @@ document.addEventListener('DOMContentLoaded', () => {
               </svg>
             </button>
           </div>
-        </div>`;
+        </div>        
+        </div>
+        <button class="ytp-unmute" type="button" aria-label="Unmute and play from start">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M3 9v6h4l5 4V5L8 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.06a4.5 4.5 0 0 0 2.5-4.03zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+          <span>Click to unmute</span>
+        </button>`;
+      
       const q = (s) => this.container.querySelector(s);
       this.$ = {
         frame: q('.ytp-frame'), overlay: q('.ytp-overlay'), controls: q('.ytp-controls'),
@@ -119,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         seek: q('.ytp-seek'), playBtn: q('.ytp-play'), muteBtn: q('.ytp-mute'),
         volOn: q('.ytp-vol-on'), volOff: q('.ytp-vol-off'),
         time: q('.ytp-time'), fullBtn: q('.ytp-full'),
+        unmute: q('.ytp-unmute'),
       };
       this._bindUI();
     }
@@ -126,7 +135,17 @@ document.addEventListener('DOMContentLoaded', () => {
     _bindUI() {
       const $ = this.$;
       $.playBtn.addEventListener('click', () => this.toggle());
-      $.overlay.addEventListener('click', () => this.toggle());
+      $.unmute.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._unmuteAndRestart();
+      });
+      $.overlay.addEventListener('click', () => {
+        if (this.container.classList.contains('is-muted-cta')) {
+          this._unmuteAndRestart();
+          return;
+        }
+        this.toggle();
+      });
       $.muteBtn.addEventListener('click', () => this.toggleMute());
       $.fullBtn.addEventListener('click', () => this.fullscreen());
       $.seek.addEventListener('input', (e) => {
@@ -172,7 +191,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     _onReady() {
       if (!this.player) return;
-      if (this.opts.muted) this.player.mute();
+      if (this.opts.muted) {
+        this.player.mute();
+        if (this.opts.autoplay) this.container.classList.add('is-muted-cta');
+      }
       this.state.duration = this.player.getDuration() || 0;
       this._updateTime();
       if (this.opts.autoplay) this.player.playVideo();
@@ -224,6 +246,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     play()   { this.player?.playVideo(); }
+    _unmuteAndRestart() {
+      if (!this.player) return;
+      try {
+        this.player.seekTo(0, true);
+        this.player.unMute();
+        this.player.setVolume(100);
+        this.player.playVideo();
+      } catch {}
+      this.state.muted = false;
+      this.state.ended = false;
+      this.container.classList.remove('is-muted-cta');
+      this.$.volOn.style.display = '';
+      this.$.volOff.style.display = 'none';
+      this.$.muteBtn.setAttribute('aria-label', 'Mute');
+    }
+
     pause()  { this.player?.pauseVideo(); }
     toggle() {
       if (!this.player) return;
