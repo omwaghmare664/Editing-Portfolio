@@ -1,5 +1,4 @@
 /* app.js: Lenis + GSAP + custom YouTube player */
-function reviews() {
 'use strict';
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -203,8 +202,6 @@ const boot = () => {
     });
   }
 
-    reviews();
-
   addEventListener('load', () => ScrollTrigger.refresh());
   let t; addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => ScrollTrigger.refresh(), 200); });
 };
@@ -281,5 +278,4 @@ document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded'
 
   (document.fonts && document.fonts.ready || Promise.resolve()).then(build);   // measure after fonts load
   let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(build, 300); });
-}
 })();
