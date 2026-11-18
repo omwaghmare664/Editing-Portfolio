@@ -1,38 +1,264 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // --- 1. DOM References ---
-  const template = document.getElementById('workCardTemplate');
-  const grid = document.getElementById('drawerContent');
-  const filterRow = document.getElementById('categoryRow');
-  const resetBtn = document.getElementById('drawerClose');
-  const counter = document.querySelector('[data-filter-count]');
-  const status = document.querySelector('[data-work-status]');
+  // ── 1. DOM refs ─────────────────────────────────────────────
+  const template   = document.getElementById('workCardTemplate');
+  const grid       = document.getElementById('drawerContent');
+  const filterRow  = document.getElementById('categoryRow');
+  const resetBtn   = document.getElementById('drawerClose');
+  const counter    = document.querySelector('[data-filter-count]');
+  const status     = document.querySelector('[data-work-status]');
 
-  const modal = document.getElementById('videoModal');
+  const modal      = document.getElementById('videoModal');
   const modalFrame = modal?.querySelector('.video-modal-frame');
-  const closeBtn = modal?.querySelector('.video-modal-close');
+  const closeBtn   = modal?.querySelector('.video-modal-close');
 
-  let allCards = [];
-  let lenis = null;
+  let allCards     = [];
+  let modalPlayer  = null;
 
-  // --- 0. Smooth scroll (Lenis + GSAP ScrollTrigger) ---
   const hasGsap = typeof gsap !== 'undefined';
   const hasScrollTrigger = typeof ScrollTrigger !== 'undefined';
-  const hasLenis = typeof Lenis !== 'undefined';
-
   if (hasGsap && hasScrollTrigger) gsap.registerPlugin(ScrollTrigger);
 
-  if (hasLenis && hasGsap && hasScrollTrigger) {
-    lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
+  // ── 2. YouTube IFrame API (shared loader) ───────────────────
+  let _ytApiPromise = null;
+  function loadYTApi() {
+    if (window.YT && window.YT.Player) return Promise.resolve(window.YT);
+    if (_ytApiPromise) return _ytApiPromise;
+    _ytApiPromise = new Promise((resolve) => {
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        prev && prev();
+        resolve(window.YT);
+      };
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(tag);
     });
-    lenis.on('scroll', ScrollTrigger.update);
-    gsap.ticker.add((time) => lenis.raf(time * 1000));
-    gsap.ticker.lagSmoothing(0);
+    return _ytApiPromise;
   }
 
-  // Smooth anchor scroll
+  // ── 3. Reusable YouTube player with custom controls ─────────
+  const YTP_STYLES = `
+    .ytp{position:relative;width:100%;height:100%;background:#000;overflow:hidden;isolation:isolate;color:#fff}
+    .ytp-frame,.ytp-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+    .ytp-overlay{position:absolute;inset:0;z-index:2;cursor:pointer}
+    .ytp-controls{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:22px 14px 10px;
+      background:linear-gradient(transparent,rgba(0,0,0,.78));font:12px/1.4 system-ui,sans-serif;
+      transition:opacity .25s,transform .25s}
+    .ytp.is-playing:not(:hover):not(:focus-within) .ytp-controls{opacity:0;transform:translateY(6px);pointer-events:none}
+    .ytp-timeline{position:relative;height:4px;margin-bottom:10px;background:rgba(255,255,255,.25);
+      border-radius:2px;cursor:pointer;transition:height .15s}
+    .ytp-timeline:hover{height:6px}
+    .ytp-loaded,.ytp-progress{position:absolute;left:0;top:0;bottom:0;border-radius:2px;pointer-events:none}
+    .ytp-loaded{background:rgba(255,255,255,.25);width:0}
+    .ytp-progress{background:#f33;width:0}
+    .ytp-seek{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+    .ytp-row{display:flex;align-items:center;gap:8px}
+    .ytp-row button{background:transparent;border:0;color:#fff;cursor:pointer;padding:5px;
+      border-radius:5px;display:flex;align-items:center;justify-content:center}
+    .ytp-row button:hover{background:rgba(255,255,255,.15)}
+    .ytp-time{font-variant-numeric:tabular-nums;font-size:11px;opacity:.9;white-space:nowrap}
+    .ytp-spacer{flex:1}
+    .ytp.is-ended .ytp-controls{opacity:1;transform:none;pointer-events:auto}
+  `;
+  function injectYTPStyles() {
+    if (document.getElementById('ytp-styles')) return;
+    const s = document.createElement('style');
+    s.id = 'ytp-styles';
+    s.textContent = YTP_STYLES;
+    document.head.appendChild(s);
+  }
+  injectYTPStyles();
+
+  class YTPlayer {
+    constructor(container, videoId, opts = {}) {
+      this.container = container;
+      this.videoId = videoId;
+      this.opts = { autoplay: true, muted: true, loop: false, ...opts };
+      this.player = null;
+      this.destroyed = false;
+      this.state = { playing: false, ended: false, muted: this.opts.muted, current: 0, duration: 0 };
+      this._buildUI();
+      this._mount();
+    }
+
+    _buildUI() {
+      this.container.classList.add('ytp');
+      this.container.innerHTML = `
+        <div class="ytp-frame"></div>
+        <div class="ytp-overlay"></div>
+        <div class="ytp-controls">
+          <div class="ytp-timeline">
+            <div class="ytp-loaded"></div>
+            <div class="ytp-progress"></div>
+            <input class="ytp-seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
+          </div>
+          <div class="ytp-row">
+            <button class="ytp-play" type="button" aria-label="Play">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <span class="ytp-time">0:00 / 0:00</span>
+            <span class="ytp-spacer"></span>
+            <button class="ytp-mute" type="button" aria-label="Unmute">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 9v6h4l5 4V5L8 9Z"/>
+                <path class="ytp-vol-on" d="M17 8q5 4 0 8"/>
+                <path class="ytp-vol-off" d="m17 9 5 6m0-6-5 6" style="display:none"/>
+              </svg>
+            </button>
+            <button class="ytp-full" type="button" aria-label="Fullscreen">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/>
+              </svg>
+            </button>
+          </div>
+        </div>`;
+      const q = (s) => this.container.querySelector(s);
+      this.$ = {
+        frame: q('.ytp-frame'), overlay: q('.ytp-overlay'), controls: q('.ytp-controls'),
+        timeline: q('.ytp-timeline'), loaded: q('.ytp-loaded'), progress: q('.ytp-progress'),
+        seek: q('.ytp-seek'), playBtn: q('.ytp-play'), muteBtn: q('.ytp-mute'),
+        volOn: q('.ytp-vol-on'), volOff: q('.ytp-vol-off'),
+        time: q('.ytp-time'), fullBtn: q('.ytp-full'),
+      };
+      this._bindUI();
+    }
+
+    _bindUI() {
+      const $ = this.$;
+      $.playBtn.addEventListener('click', () => this.toggle());
+      $.overlay.addEventListener('click', () => this.toggle());
+      $.muteBtn.addEventListener('click', () => this.toggleMute());
+      $.fullBtn.addEventListener('click', () => this.fullscreen());
+      $.seek.addEventListener('input', (e) => {
+        if (!this.state.duration) return;
+        const t = (e.target.value / 1000) * this.state.duration;
+        this.player?.seekTo(t, true);
+        this.state.current = t;
+        this._updateTime();
+      });
+      $.timeline.addEventListener('click', (e) => {
+        if (!this.state.duration) return;
+        const r = $.timeline.getBoundingClientRect();
+        const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+        const t = pct * this.state.duration;
+        this.player?.seekTo(t, true);
+        this.state.current = t;
+        this._updateTime();
+      });
+    }
+
+    async _mount() {
+      await loadYTApi();
+      if (this.destroyed) return;
+      const id = 'ytp-' + Math.random().toString(36).slice(2, 10);
+      this.$.frame.innerHTML = `<div id="${id}"></div>`;
+      this.player = new YT.Player(id, {
+        videoId: this.videoId,
+        playerVars: {
+          autoplay: this.opts.autoplay ? 1 : 0,
+          mute: this.opts.muted ? 1 : 0,
+          controls: 0, modestbranding: 1, rel: 0, playsinline: 1,
+          iv_load_policy: 3, fs: 0, disablekb: 1,
+          loop: this.opts.loop ? 1 : 0,
+          playlist: this.opts.loop ? this.videoId : undefined,
+          origin: location.origin,
+        },
+        events: {
+          onReady: () => this._onReady(),
+          onStateChange: (e) => this._onStateChange(e),
+        },
+      });
+    }
+
+    _onReady() {
+      if (!this.player) return;
+      if (this.opts.muted) this.player.mute();
+      this.state.duration = this.player.getDuration() || 0;
+      this._updateTime();
+      if (this.opts.autoplay) this.player.playVideo();
+      this._tick = setInterval(() => this._onTick(), 200);
+    }
+
+    _onTick() {
+      if (!this.player || this.destroyed) return;
+      try {
+        const cur = this.player.getCurrentTime();
+        const dur = this.player.getDuration();
+        const loaded = this.player.getVideoLoadedFraction();
+        if (dur > 0) {
+          this.state.current = cur;
+          this.state.duration = dur;
+          this._updateTime();
+          this.$.loaded.style.width = (loaded * 100) + '%';
+        }
+      } catch {}
+    }
+
+    _onStateChange(e) {
+      const YT = window.YT;
+      if (!YT) return;
+      this.state.playing = e.data === YT.PlayerState.PLAYING;
+      this.state.ended   = e.data === YT.PlayerState.ENDED;
+      this._updatePlayBtn();
+      this.container.classList.toggle('is-playing', this.state.playing);
+      this.container.classList.toggle('is-ended', this.state.ended);
+    }
+
+    _updatePlayBtn() {
+      const b = this.$.playBtn;
+      const icon = this.state.ended
+        ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7Z"/></svg>'
+        : this.state.playing
+          ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>'
+          : '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+      b.innerHTML = icon;
+      b.setAttribute('aria-label', this.state.ended ? 'Replay' : this.state.playing ? 'Pause' : 'Play');
+    }
+
+    _updateTime() {
+      const { current, duration } = this.state;
+      const pct = duration ? current / duration : 0;
+      this.$.progress.style.width = (pct * 100) + '%';
+      this.$.seek.value = Math.round(pct * 1000);
+      this.$.time.textContent = `${fmt(current)} / ${fmt(duration)}`;
+    }
+
+    play()   { this.player?.playVideo(); }
+    pause()  { this.player?.pauseVideo(); }
+    toggle() {
+      if (!this.player) return;
+      if (this.state.ended) { this.player.seekTo(0, true); this.player.playVideo(); return; }
+      if (this.state.playing) this.player.pauseVideo();
+      else this.player.playVideo();
+    }
+    toggleMute() {
+      if (!this.player) return;
+      this.state.muted = !this.state.muted;
+      this.player[this.state.muted ? 'mute' : 'unMute']();
+      this.$.volOn.style.display  = this.state.muted ? 'none' : '';
+      this.$.volOff.style.display = this.state.muted ? '' : 'none';
+    }
+    fullscreen() {
+      const el = this.container;
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+      else el.requestFullscreen?.().catch(() => {});
+    }
+    destroy() {
+      this.destroyed = true;
+      clearInterval(this._tick);
+      try { this.player?.destroy(); } catch {}
+      this.player = null;
+      this.container.innerHTML = '';
+      this.container.classList.remove('ytp', 'is-playing', 'is-ended');
+    }
+  }
+
+  const fmt = (n) => {
+    n = Math.max(0, Math.floor(n || 0));
+    return Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
+  };
+
+  // ── 4. Native smooth scroll for anchors ─────────────────────
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     anchor.addEventListener('click', (e) => {
       const href = anchor.getAttribute('href');
@@ -40,19 +266,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const target = document.querySelector(href);
       if (!target) return;
       e.preventDefault();
-      if (lenis) lenis.scrollTo(target);
-      else target.scrollIntoView({ behavior: 'smooth' });
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
     });
   });
 
-  // --- 2. Fetch Data ---
+  // ── 5. Fetch data ──────────────────────────────────────────
   fetch('data.json')
     .then((res) => res.json())
     .then((data) => {
-      if (status) status.remove();
+      status?.remove();
       buildFilters(data.categories);
       buildGrid(data.categories);
-      setShowreel(data.categories);
+      setupShowreel();              // ← NO categories param
       applyFilter('motion');
       if (hasGsap && hasScrollTrigger) initReveals();
     })
@@ -61,37 +287,30 @@ document.addEventListener('DOMContentLoaded', () => {
       if (status) status.textContent = 'Error loading projects. Check console.';
     });
 
-  // --- 3. Build The Grid ---
+  // ── 6. Grid builder ────────────────────────────────────────
   function buildGrid(categories) {
     const frag = document.createDocumentFragment();
     let count = 0;
-
     for (const [slug, cat] of Object.entries(categories)) {
       for (const videoId of cat.videos) {
         count++;
         const node = template.content.firstElementChild.cloneNode(true);
-
         node.dataset.category = slug;
         const a = node.querySelector('a');
         a.dataset.youtubeId = videoId;
         a.href = `https://youtu.be/${videoId}`;
-
         const img = node.querySelector('img');
         img.src = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
         img.onerror = () => { img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; };
-
         node.querySelector('.work-index').textContent = `No. ${String(count).padStart(2, '0')}`;
         node.querySelector('dd[data-field="type"]').textContent = cat.name;
-
         const titleEl = node.querySelector('.work-title');
         titleEl.textContent = 'Loading title...';
         fetchTitle(videoId, titleEl);
-
         ['client', 'duration', 'year'].forEach((field) => {
           const dd = node.querySelector(`dd[data-field="${field}"]`);
           if (dd && !dd.textContent.trim()) dd.closest('div').remove();
         });
-
         frag.appendChild(node);
       }
     }
@@ -99,211 +318,157 @@ document.addEventListener('DOMContentLoaded', () => {
     allCards = [...grid.querySelectorAll('.work-card')];
   }
 
-  // --- 4. Build Filters ---
+  // ── 7. Filter builder ──────────────────────────────────────
   function buildFilters(categories) {
     filterRow.innerHTML = '';
-    const createBtn = (slug, label) => {
+    for (const [slug, cat] of Object.entries(categories)) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = label;
+      btn.textContent = cat.name;
       btn.dataset.filter = slug;
       btn.setAttribute('aria-pressed', 'false');
       btn.onclick = () => applyFilter(slug);
-      return btn;
-    };
-    for (const [slug, cat] of Object.entries(categories)) {
-      filterRow.appendChild(createBtn(slug, cat.name));
+      filterRow.appendChild(btn);
     }
   }
 
-  // --- 5. Filter Logic (+ card stagger animation) ---
+  // ── 8. Filter logic (debounced refresh) ────────────────────
+  let _refreshT = null;
   function applyFilter(activeSlug) {
     let visibleCount = 0;
-
     allCards.forEach((card) => {
       const match = card.dataset.category === activeSlug;
       card.hidden = !match;
       if (match) visibleCount++;
     });
-
     filterRow.querySelectorAll('button').forEach((btn) => {
       btn.setAttribute('aria-pressed', String(btn.dataset.filter === activeSlug));
     });
-
     if (counter) counter.textContent = `${visibleCount} projects`;
     if (resetBtn) resetBtn.hidden = true;
 
-    // Animate newly-visible cards so switching filters feels alive
     if (hasGsap) {
       const visible = allCards.filter((c) => !c.hidden);
-      gsap.fromTo(
-        visible,
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out', stagger: 0.06, overwrite: true }
-      );
+      gsap.fromTo(visible,
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.35, ease: 'power2.out', stagger: 0.03, overwrite: true });
     }
 
-    if (hasScrollTrigger) ScrollTrigger.refresh();
+    if (hasScrollTrigger) {
+      clearTimeout(_refreshT);
+      _refreshT = setTimeout(() => ScrollTrigger.refresh(), 120);
+    }
   }
 
-  // --- 6. Modal — work cards only ---
+  // ── 9. Modal with custom player ────────────────────────────
   function openModal(videoId) {
     if (!modal || !modalFrame) return;
-    modalFrame.innerHTML = `
-      <iframe
-        src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen></iframe>`;
+    closeModal();          // clean slate
+    const el = document.createElement('div');
+    el.style.cssText = 'width:100%;height:100%;position:relative';
+    modalFrame.appendChild(el);
+    modalPlayer = new YTPlayer(el, videoId, { autoplay: true, muted: true, loop: false });
     modal.showModal();
   }
-
   function closeModal() {
-    if (!modal || !modalFrame) return;
-    modal.close();
-    modalFrame.innerHTML = '';
+    if (modal?.open) modal.close();
+  }
+  function cleanupModal() {
+    if (modalPlayer) { modalPlayer.destroy(); modalPlayer = null; }
+    if (modalFrame) modalFrame.innerHTML = '';
   }
 
   closeBtn?.addEventListener('click', closeModal);
-  modal?.addEventListener('close', closeModal);
+  modal?.addEventListener('close', cleanupModal);
   modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
   document.body.addEventListener('click', (e) => {
     const link = e.target.closest('[data-lightbox="video"]');
     if (!link) return;
     const videoId = link.dataset.youtubeId;
-    if (videoId) {
-      e.preventDefault();
-      openModal(videoId);
-    }
+    if (videoId) { e.preventDefault(); openModal(videoId); }
   });
 
-  // --- 7. SHOWREEL: inline autoplay, no popup ---
-  function setShowreel(categories) {
-    const firstCategory = Object.values(categories)[0];
-    if (!firstCategory?.videos?.length) return;
-
-    const videoId = firstCategory.videos[0];
+  // ── 10. Showreel — reads ID from the hero link, NOT data.json ─
+  function setupShowreel() {
     const reelLink = document.querySelector('.hero-reel-link');
     if (!reelLink) return;
 
-    // Styles injected once
-    if (!document.getElementById('hero-reel-styles')) {
-      const style = document.createElement('style');
-      style.id = 'hero-reel-styles';
-      style.textContent = `
-        .hero-reel-inline {
-          position: relative;
-          width: 100%;
-          aspect-ratio: 16 / 9;
-          overflow: hidden;
-          background: #000;
-          border-radius: inherit;
-        }
-        .hero-reel-inline > img,
-        .hero-reel-inline > iframe {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          border: 0;
-        }
-        .hero-reel-inline > img {
-          object-fit: cover;
-          z-index: 1;
-          transition: opacity .6s ease;
-        }
-        .hero-reel-inline > iframe { z-index: 2; }
-      `;
-      document.head.appendChild(style);
+    // Priority: data-youtube-id → href → fallback
+    const FALLBACK_ID = 'jrb40f3MnwQ';
+    let videoId = reelLink.dataset.youtubeId || '';
+    if (!videoId) {
+      const m = (reelLink.getAttribute('href') || '').match(
+        /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|v\/))([A-Za-z0-9_-]{11})/
+      );
+      if (m) videoId = m[1];
     }
-
-    // Replace the clickable link with an inline player container
-    const inline = document.createElement('div');
-    inline.className = 'hero-reel-inline';
+    if (!videoId) videoId = FALLBACK_ID;
 
     const poster = reelLink.querySelector('img');
-    if (poster) inline.appendChild(poster);
 
-    reelLink.replaceWith(inline);
+    const container = document.createElement('div');
+    container.className = 'hero-reel-player';
+    container.style.cssText = 'position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden';
 
-    // Lazy-load autoplay iframe when the reel scrolls into view
-    const observer = new IntersectionObserver((entries) => {
+    if (poster) {
+      poster.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;transition:opacity .5s';
+      container.appendChild(poster);
+    }
+    reelLink.replaceWith(container);
+
+    const io = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (!entry.isIntersecting || inline.dataset.loaded) return;
-        inline.dataset.loaded = '1';
+        if (!entry.isIntersecting || container.dataset.loaded) return;
+        container.dataset.loaded = '1';
 
-        const iframe = document.createElement('iframe');
-        iframe.src =
-          `https://www.youtube-nocookie.com/embed/${videoId}` +
-          `?autoplay=1&mute=1&loop=1&playlist=${videoId}` +
-          `&controls=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3`;
-        iframe.title = 'Showreel';
-        iframe.allow =
-          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-        iframe.allowFullscreen = true;
-        iframe.loading = 'lazy';
-        iframe.addEventListener('load', () => {
-          if (poster) {
-            poster.style.opacity = '0';
-            setTimeout(() => poster.remove(), 700);
-          }
-        });
-        inline.appendChild(iframe);
-        observer.disconnect();
+        const playerEl = document.createElement('div');
+        playerEl.style.cssText = 'position:absolute;inset:0;z-index:1';
+        container.appendChild(playerEl);
+
+        new YTPlayer(playerEl, videoId, { autoplay: true, muted: true, loop: true });
+
+        if (poster) {
+          setTimeout(() => { poster.style.opacity = '0'; }, 600);
+          setTimeout(() => poster.remove(), 1200);
+        }
+        io.disconnect();
       });
     }, { rootMargin: '300px' });
+    io.observe(container);
 
-    observer.observe(inline);
     document.getElementById('showreel')?.removeAttribute('data-placeholder');
   }
 
-  // --- 8. Fetch YouTube Titles (Cached) ---
+  // ── 11. YouTube title fetch (cached) ───────────────────────
   async function fetchTitle(videoId, element) {
     const cacheKey = `yt_title_${videoId}`;
     const cachedTitle = localStorage.getItem(cacheKey);
     if (cachedTitle) { element.textContent = cachedTitle; return; }
-
     try {
       const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
       const data = await res.json();
       if (data.title) {
         element.textContent = data.title;
         localStorage.setItem(cacheKey, data.title);
-      } else {
-        element.textContent = 'Watch Video';
-      }
-    } catch {
-      element.textContent = 'Watch Video';
-    }
+      } else element.textContent = 'Watch Video';
+    } catch { element.textContent = 'Watch Video'; }
   }
 
-  // --- 9. GSAP Reveals ---
+  // ── 12. GSAP scroll reveals ────────────────────────────────
   function initReveals() {
-    const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (isReduced) return;
-
-    gsap.registerPlugin(ScrollTrigger);
-
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     gsap.utils.toArray('[data-reveal="wipe"]').forEach((el) => {
       gsap.fromTo(el,
         { clipPath: 'inset(0 100% 0 0)' },
-        {
-          clipPath: 'inset(0 0% 0 0)',
-          duration: 0.8,
-          ease: 'power3.out',
-          scrollTrigger: { trigger: el, start: 'top 85%' },
-        }
-      );
+        { clipPath: 'inset(0 0% 0 0)', duration: 0.8, ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 85%' } });
     });
-
     gsap.utils.toArray('[data-reveal="rise"]').forEach((el) => {
       gsap.fromTo(el,
         { y: 30, opacity: 0 },
-        {
-          y: 0, opacity: 1, duration: 0.6, ease: 'power3.out',
-          scrollTrigger: { trigger: el, start: 'top 85%' },
-        }
-      );
+        { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 85%' } });
     });
   }
 });
