@@ -1,5 +1,5 @@
 /* app.js: Lenis + GSAP + custom YouTube player */
-(() => {
+function reviews() {
 'use strict';
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -203,6 +203,8 @@ const boot = () => {
     });
   }
 
+    reviews();
+
   addEventListener('load', () => ScrollTrigger.refresh());
   let t; addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => ScrollTrigger.refresh(), 200); });
 };
@@ -212,7 +214,10 @@ document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded'
   const box = $('#gravity'); if (!box || !window.Matter) return;
   const { Engine, Runner, Bodies, Body, Composite, Constraint, Query, Events } = Matter;
   const cards = $$('.rcard', box);
-  $$('.stars', box).forEach(s =>   s.innerHTML = [0, 1, 2, 3, 4].map(i => `<i style="--f:${Math.max(0, Math.min(1, r - i)) * 100}%"></i>`).join('') + `<em>${r.toFixed(1)}</em>`;
+  $$('.stars', box).forEach(s => {
+  const r = parseFloat(s.dataset.r) || 5;
+  s.innerHTML = [0, 1, 2, 3, 4].map(i => `<i style="--f:${Math.max(0, Math.min(1, r - i)) * 100}%"></i>`).join('') + `<em>${r.toFixed(1)}</em>`;
+});
   let engine, runner, bodies = [], drag = null, started = false, visible = false;
 
   const build = () => {
@@ -276,5 +281,5 @@ document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded'
 
   (document.fonts && document.fonts.ready || Promise.resolve()).then(build);   // measure after fonts load
   let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(build, 300); });
-})();
+}
 })();
