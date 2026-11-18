@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalFrame = modal?.querySelector('.video-modal-frame');
   const closeBtn   = modal?.querySelector('.video-modal-close');
 
-  let allCards     = [];
-  let modalPlayer  = null;
+  let allCards    = [];
+  let modalPlayer = null;
 
   const hasGsap = typeof gsap !== 'undefined';
   const hasScrollTrigger = typeof ScrollTrigger !== 'undefined';
@@ -36,15 +36,28 @@ document.addEventListener('DOMContentLoaded', () => {
     return _ytApiPromise;
   }
 
-  // ── 3. Reusable YouTube player with custom controls ─────────
+  // ── 3. Player CSS ───────────────────────────────────────────
   const YTP_STYLES = `
-    .ytp{position:relative;width:100%;height:100%;background:#000;overflow:hidden;isolation:isolate;color:#fff}
+    .ytp{position:relative;width:100%;height:100%;background:#000;overflow:hidden;isolation:isolate;color:#fff;outline:none}
     .ytp-frame,.ytp-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-    .ytp-overlay{position:absolute;inset:0;z-index:2;cursor:pointer}
+    .ytp-overlay{position:absolute;inset:0;z-index:2;cursor:pointer;background:transparent;transition:background .2s}
+
+    /* Our own paused / ended overlay covers YT's native center UI entirely */
+    .ytp.is-paused:not(.is-muted-cta) .ytp-overlay{background:rgba(0,0,0,.45)}
+    .ytp.is-paused:not(.is-muted-cta) .ytp-overlay::after{
+      content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      width:64px;height:64px;border-radius:50%;
+      background:rgba(0,0,0,.6) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E") center/28px no-repeat;
+      border:2px solid rgba(255,255,255,.3);pointer-events:none
+    }
+    .ytp.is-ended .ytp-overlay{background:rgba(0,0,0,.75)}
+
     .ytp-controls{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:22px 14px 10px;
       background:linear-gradient(transparent,rgba(0,0,0,.78));font:12px/1.4 system-ui,sans-serif;
       transition:opacity .25s,transform .25s}
-    .ytp.is-playing:not(:hover):not(:focus-within) .ytp-controls{opacity:0;transform:translateY(6px);pointer-events:none}
+    .ytp.is-playing:not(:hover):not(:focus-within):not(.is-paused) .ytp-controls{opacity:0;transform:translateY(6px);pointer-events:none}
+    .ytp.is-ended .ytp-controls,.ytp.is-paused .ytp-controls{opacity:1;transform:none;pointer-events:auto}
+
     .ytp-timeline{position:relative;height:4px;margin-bottom:10px;background:rgba(255,255,255,.25);
       border-radius:2px;cursor:pointer;transition:height .15s}
     .ytp-timeline:hover{height:6px}
@@ -52,13 +65,33 @@ document.addEventListener('DOMContentLoaded', () => {
     .ytp-loaded{background:rgba(255,255,255,.25);width:0}
     .ytp-progress{background:#f33;width:0}
     .ytp-seek{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+
     .ytp-row{display:flex;align-items:center;gap:8px}
     .ytp-row button{background:transparent;border:0;color:#fff;cursor:pointer;padding:5px;
       border-radius:5px;display:flex;align-items:center;justify-content:center}
     .ytp-row button:hover{background:rgba(255,255,255,.15)}
     .ytp-time{font-variant-numeric:tabular-nums;font-size:11px;opacity:.9;white-space:nowrap}
     .ytp-spacer{flex:1}
-    .ytp.is-ended .ytp-controls{opacity:1;transform:none;pointer-events:auto}
+
+    .ytp-unmute{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;
+      display:none;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;
+      background:rgba(0,0,0,.72);backdrop-filter:blur(12px);color:#fff;
+      font:600 14px/1 system-ui,sans-serif;border:1px solid rgba(255,255,255,.3);
+      cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.45);
+      transition:transform .2s,background .2s}
+    .ytp-unmute:hover{background:rgba(0,0,0,.9);transform:translate(-50%,-50%) scale(1.05)}
+    .ytp-unmute svg{flex-shrink:0}
+    .ytp.is-muted-cta .ytp-unmute{display:flex}
+    .ytp.is-muted-cta .ytp-controls{opacity:0!important;pointer-events:none!important}
+
+    .ytp-spinner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      width:38px;height:38px;border:3px solid rgba(255,255,255,.2);
+      border-top-color:#fff;border-radius:50%;animation:ytp-spin 1s linear infinite;
+      display:none;z-index:4;pointer-events:none}
+    .ytp.is-buffering:not(.is-playing) .ytp-spinner{display:block}
+    @keyframes ytp-spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+    .ytp:focus-visible{outline:2px solid #fff;outline-offset:-4px}
   `;
   function injectYTPStyles() {
     if (document.getElementById('ytp-styles')) return;
@@ -69,23 +102,34 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   injectYTPStyles();
 
+  // ── 4. Global single-player registry ────────────────────────
+  let _activePlayer = null;
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && _activePlayer) _activePlayer.pause();
+  });
+
+  // ── 5. YTPlayer class ───────────────────────────────────────
   class YTPlayer {
     constructor(container, videoId, opts = {}) {
       this.container = container;
       this.videoId = videoId;
-      this.opts = { autoplay: true, muted: true, loop: false, ...opts };
+      this.opts = { autoplay: true, muted: true, loop: false, onReady: null, ...opts };
       this.player = null;
       this.destroyed = false;
-      this.state = { playing: false, ended: false, muted: this.opts.muted, current: 0, duration: 0 };
+      this._bufTimeout = null;
+      this.state = { playing: false, ended: false, paused: false, muted: this.opts.muted, current: 0, duration: 0 };
       this._buildUI();
       this._mount();
     }
 
     _buildUI() {
       this.container.classList.add('ytp');
+      this.container.tabIndex = 0;
       this.container.innerHTML = `
         <div class="ytp-frame"></div>
         <div class="ytp-overlay"></div>
+        <div class="ytp-spinner"></div>
         <div class="ytp-controls">
           <div class="ytp-timeline">
             <div class="ytp-loaded"></div>
@@ -111,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
               </svg>
             </button>
           </div>
-        </div>        
         </div>
         <button class="ytp-unmute" type="button" aria-label="Unmute and play from start">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
@@ -119,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </svg>
           <span>Click to unmute</span>
         </button>`;
-      
+
       const q = (s) => this.container.querySelector(s);
       this.$ = {
         frame: q('.ytp-frame'), overlay: q('.ytp-overlay'), controls: q('.ytp-controls'),
@@ -134,11 +177,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     _bindUI() {
       const $ = this.$;
+
       $.playBtn.addEventListener('click', () => this.toggle());
+
       $.unmute.addEventListener('click', (e) => {
         e.stopPropagation();
         this._unmuteAndRestart();
       });
+
       $.overlay.addEventListener('click', () => {
         if (this.container.classList.contains('is-muted-cta')) {
           this._unmuteAndRestart();
@@ -146,8 +192,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         this.toggle();
       });
+
       $.muteBtn.addEventListener('click', () => this.toggleMute());
       $.fullBtn.addEventListener('click', () => this.fullscreen());
+
       $.seek.addEventListener('input', (e) => {
         if (!this.state.duration) return;
         const t = (e.target.value / 1000) * this.state.duration;
@@ -155,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         this.state.current = t;
         this._updateTime();
       });
+
       $.timeline.addEventListener('click', (e) => {
         if (!this.state.duration) return;
         const r = $.timeline.getBoundingClientRect();
@@ -163,6 +212,23 @@ document.addEventListener('DOMContentLoaded', () => {
         this.player?.seekTo(t, true);
         this.state.current = t;
         this._updateTime();
+      });
+
+      // Keyboard shortcuts
+      this.container.addEventListener('keydown', (e) => {
+        const tag = (e.target.tagName || '').toUpperCase();
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(tag)) return;
+        if (e.key === ' ' || e.key === 'k') { e.preventDefault(); this.toggle(); }
+        else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); this.toggleMute(); }
+        else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); this.fullscreen(); }
+        else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          if (this.player) this.player.seekTo(Math.min(this.state.duration, this.state.current + 10), true);
+        }
+        else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          if (this.player) this.player.seekTo(Math.max(0, this.state.current - 10), true);
+        }
       });
     }
 
@@ -176,8 +242,15 @@ document.addEventListener('DOMContentLoaded', () => {
         playerVars: {
           autoplay: this.opts.autoplay ? 1 : 0,
           mute: this.opts.muted ? 1 : 0,
-          controls: 0, modestbranding: 1, rel: 0, playsinline: 1,
-          iv_load_policy: 3, fs: 0, disablekb: 1,
+          controls: 0,
+          modestbranding: 1,
+          rel: 0,
+          playsinline: 1,
+          iv_load_policy: 3,
+          fs: 0,
+          disablekb: 1,
+          showinfo: 0,
+          cc_load_policy: 0,
           loop: this.opts.loop ? 1 : 0,
           playlist: this.opts.loop ? this.videoId : undefined,
           origin: location.origin,
@@ -191,14 +264,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     _onReady() {
       if (!this.player) return;
+
       if (this.opts.muted) {
         this.player.mute();
-        if (this.opts.autoplay) this.container.classList.add('is-muted-cta');
+        const hasUnmuted = sessionStorage.getItem('yt_unmuted') === '1';
+        if (hasUnmuted) {
+          setTimeout(() => {
+            if (!this.player || this.destroyed) return;
+            try {
+              this.player.unMute();
+              this.player.setVolume(100);
+              this.state.muted = false;
+              this.$.volOn.style.display = '';
+              this.$.volOff.style.display = 'none';
+              this.$.muteBtn.setAttribute('aria-label', 'Mute');
+            } catch {}
+          }, 400);
+        } else if (this.opts.autoplay) {
+          this.container.classList.add('is-muted-cta');
+        }
       }
+
       this.state.duration = this.player.getDuration() || 0;
       this._updateTime();
       if (this.opts.autoplay) this.player.playVideo();
       this._tick = setInterval(() => this._onTick(), 200);
+      this.opts.onReady?.(this);
     }
 
     _onTick() {
@@ -219,11 +310,34 @@ document.addEventListener('DOMContentLoaded', () => {
     _onStateChange(e) {
       const YT = window.YT;
       if (!YT) return;
+
       this.state.playing = e.data === YT.PlayerState.PLAYING;
       this.state.ended   = e.data === YT.PlayerState.ENDED;
+      this.state.paused  = e.data === YT.PlayerState.PAUSED;
+
+      // Global single-player — pause others when this plays
+      if (this.state.playing) {
+        if (_activePlayer && _activePlayer !== this) {
+          try { _activePlayer.pause(); } catch {}
+        }
+        _activePlayer = this;
+      }
+
+      // Buffering spinner (debounced to avoid flicker)
+      if (e.data === YT.PlayerState.BUFFERING) {
+        clearTimeout(this._bufTimeout);
+        this._bufTimeout = setTimeout(() => {
+          if (!this.destroyed) this.container.classList.add('is-buffering');
+        }, 400);
+      } else {
+        clearTimeout(this._bufTimeout);
+        this.container.classList.remove('is-buffering');
+      }
+
       this._updatePlayBtn();
       this.container.classList.toggle('is-playing', this.state.playing);
       this.container.classList.toggle('is-ended', this.state.ended);
+      this.container.classList.toggle('is-paused', this.state.paused);
     }
 
     _updatePlayBtn() {
@@ -245,7 +359,32 @@ document.addEventListener('DOMContentLoaded', () => {
       this.$.time.textContent = `${fmt(current)} / ${fmt(duration)}`;
     }
 
-    play()   { this.player?.playVideo(); }
+    play()  { this.player?.playVideo(); }
+    pause() { this.player?.pauseVideo(); }
+
+    toggle() {
+      if (!this.player) return;
+      if (this.state.ended) {
+        this.player.seekTo(0, true);
+        this.player.playVideo();
+        return;
+      }
+      if (this.state.playing) this.player.pauseVideo();
+      else this.player.playVideo();
+    }
+
+    toggleMute() {
+      if (!this.player) return;
+      this.state.muted = !this.state.muted;
+      if (!this.state.muted) {
+        try { sessionStorage.setItem('yt_unmuted', '1'); } catch {}
+      }
+      this.player[this.state.muted ? 'mute' : 'unMute']();
+      this.$.volOn.style.display  = this.state.muted ? 'none' : '';
+      this.$.volOff.style.display = this.state.muted ? '' : 'none';
+      this.$.muteBtn.setAttribute('aria-label', this.state.muted ? 'Unmute' : 'Mute');
+    }
+
     _unmuteAndRestart() {
       if (!this.player) return;
       try {
@@ -256,38 +395,28 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch {}
       this.state.muted = false;
       this.state.ended = false;
+      try { sessionStorage.setItem('yt_unmuted', '1'); } catch {}
       this.container.classList.remove('is-muted-cta');
       this.$.volOn.style.display = '';
       this.$.volOff.style.display = 'none';
       this.$.muteBtn.setAttribute('aria-label', 'Mute');
     }
 
-    pause()  { this.player?.pauseVideo(); }
-    toggle() {
-      if (!this.player) return;
-      if (this.state.ended) { this.player.seekTo(0, true); this.player.playVideo(); return; }
-      if (this.state.playing) this.player.pauseVideo();
-      else this.player.playVideo();
-    }
-    toggleMute() {
-      if (!this.player) return;
-      this.state.muted = !this.state.muted;
-      this.player[this.state.muted ? 'mute' : 'unMute']();
-      this.$.volOn.style.display  = this.state.muted ? 'none' : '';
-      this.$.volOff.style.display = this.state.muted ? '' : 'none';
-    }
     fullscreen() {
       const el = this.container;
       if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
       else el.requestFullscreen?.().catch(() => {});
     }
+
     destroy() {
+      if (_activePlayer === this) _activePlayer = null;
       this.destroyed = true;
       clearInterval(this._tick);
+      clearTimeout(this._bufTimeout);
       try { this.player?.destroy(); } catch {}
       this.player = null;
       this.container.innerHTML = '';
-      this.container.classList.remove('ytp', 'is-playing', 'is-ended');
+      this.container.classList.remove('ytp', 'is-playing', 'is-ended', 'is-paused', 'is-buffering', 'is-muted-cta');
     }
   }
 
@@ -296,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
   };
 
-  // ── 4. Native smooth scroll for anchors ─────────────────────
+  // ── 6. Native smooth scroll for anchors ─────────────────────
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     anchor.addEventListener('click', (e) => {
       const href = anchor.getAttribute('href');
@@ -309,14 +438,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ── 5. Fetch data ──────────────────────────────────────────
+  // ── 7. Fetch data ──────────────────────────────────────────
   fetch('data.json')
     .then((res) => res.json())
     .then((data) => {
       status?.remove();
       buildFilters(data.categories);
       buildGrid(data.categories);
-      setupShowreel();              // ← NO categories param
+      setupShowreel();
       applyFilter('motion');
       if (hasGsap && hasScrollTrigger) initReveals();
     })
@@ -325,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (status) status.textContent = 'Error loading projects. Check console.';
     });
 
-  // ── 6. Grid builder ────────────────────────────────────────
+  // ── 8. Grid builder ────────────────────────────────────────
   function buildGrid(categories) {
     const frag = document.createDocumentFragment();
     let count = 0;
@@ -356,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
     allCards = [...grid.querySelectorAll('.work-card')];
   }
 
-  // ── 7. Filter builder ──────────────────────────────────────
+  // ── 9. Filter builder ──────────────────────────────────────
   function buildFilters(categories) {
     filterRow.innerHTML = '';
     for (const [slug, cat] of Object.entries(categories)) {
@@ -370,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ── 8. Filter logic (debounced refresh) ────────────────────
+  // ── 10. Filter logic (debounced refresh) ───────────────────
   let _refreshT = null;
   function applyFilter(activeSlug) {
     let visibleCount = 0;
@@ -398,10 +527,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ── 9. Modal with custom player ────────────────────────────
+  // ── 11. Modal with custom player ───────────────────────────
   function openModal(videoId) {
     if (!modal || !modalFrame) return;
-    closeModal();          // clean slate
+    closeModal();
     const el = document.createElement('div');
     el.style.cssText = 'width:100%;height:100%;position:relative';
     modalFrame.appendChild(el);
@@ -427,12 +556,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (videoId) { e.preventDefault(); openModal(videoId); }
   });
 
-  // ── 10. Showreel — reads ID from the hero link, NOT data.json ─
+  // ── 12. Showreel — reads ID from the hero link, NOT data.json ─
   function setupShowreel() {
     const reelLink = document.querySelector('.hero-reel-link');
     if (!reelLink) return;
 
-    // Priority: data-youtube-id → href → fallback
     const FALLBACK_ID = 'jrb40f3MnwQ';
     let videoId = reelLink.dataset.youtubeId || '';
     if (!videoId) {
@@ -450,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
     container.style.cssText = 'position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden';
 
     if (poster) {
-      poster.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;transition:opacity .5s';
+      poster.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;transition:opacity .5s';
       container.appendChild(poster);
     }
     reelLink.replaceWith(container);
@@ -461,15 +589,19 @@ document.addEventListener('DOMContentLoaded', () => {
         container.dataset.loaded = '1';
 
         const playerEl = document.createElement('div');
-        playerEl.style.cssText = 'position:absolute;inset:0;z-index:1';
+        playerEl.style.cssText = 'position:absolute;inset:0;z-index:2';
         container.appendChild(playerEl);
 
-        new YTPlayer(playerEl, videoId, { autoplay: true, muted: true, loop: true });
+        new YTPlayer(playerEl, videoId, {
+          autoplay: true, muted: true, loop: true,
+          onReady: () => {
+            if (poster) {
+              setTimeout(() => { poster.style.opacity = '0'; }, 400);
+              setTimeout(() => poster.remove(), 1100);
+            }
+          },
+        });
 
-        if (poster) {
-          setTimeout(() => { poster.style.opacity = '0'; }, 600);
-          setTimeout(() => poster.remove(), 1200);
-        }
         io.disconnect();
       });
     }, { rootMargin: '300px' });
@@ -478,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('showreel')?.removeAttribute('data-placeholder');
   }
 
-  // ── 11. YouTube title fetch (cached) ───────────────────────
+  // ── 13. YouTube title fetch (cached) ───────────────────────
   async function fetchTitle(videoId, element) {
     const cacheKey = `yt_title_${videoId}`;
     const cachedTitle = localStorage.getItem(cacheKey);
@@ -493,7 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch { element.textContent = 'Watch Video'; }
   }
 
-  // ── 12. GSAP scroll reveals ────────────────────────────────
+  // ── 14. GSAP scroll reveals ────────────────────────────────
   function initReveals() {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     gsap.utils.toArray('[data-reveal="wipe"]').forEach((el) => {
