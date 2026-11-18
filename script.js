@@ -207,4 +207,63 @@ const boot = () => {
   let t; addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => ScrollTrigger.refresh(), 200); });
 };
 document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : boot();
+  /* ---------- Reviews with gravity (Matter.js) ---------- */
+(() => {
+  const box = $('#gravity'); if (!box || !window.Matter) return;
+  const { Engine, Runner, Bodies, Body, Composite, Constraint, Query } = Matter;
+  const cards = $$('.rcard', box);
+  $$('.stars', box).forEach(s => s.innerHTML = '<i></i>'.repeat(5));
+  let engine, runner, bodies = [], drag = null, started = false, visible = false;
+
+  const build = () => {
+    if (runner) Runner.stop(runner);
+    drag = null;
+    engine = Engine.create({ gravity: { y: 1 } });
+    const W = box.clientWidth, H = box.clientHeight, t = 200;
+    Composite.add(engine.world, [
+      Bodies.rectangle(W / 2, H + t / 2, W * 3, t, { isStatic: true }),   // floor
+      Bodies.rectangle(-t / 2, H / 2, t, H * 6, { isStatic: true }),      // left wall
+      Bodies.rectangle(W + t / 2, H / 2, t, H * 6, { isStatic: true })    // right wall
+    ]);
+    bodies = cards.map((el, i) => {
+      const w = el.offsetWidth, h = el.offsetHeight;
+      const b = Bodies.rectangle(W * (.2 + .6 * Math.random()), -h - i * h * 1.15, w, h,
+        { chamfer: { radius: 22 }, restitution: .25, friction: .5, frictionAir: .012 });
+      Body.setAngle(b, (Math.random() - .5) * .9);
+      b.el = el; b.w = w; b.h = h; return b;
+    });
+    Composite.add(engine.world, bodies);
+    runner = Runner.create(); runner.enabled = started && visible; Runner.run(runner, engine);
+  };
+
+  gsap.ticker.add(() => bodies.forEach(b => {
+    b.el.style.transform = `translate(${b.position.x - b.w / 2}px,${b.position.y - b.h / 2}px) rotate(${b.angle}rad)`;
+  }));
+
+  /* drag and throw (pointer events: works for mouse and touch, page still scrolls elsewhere) */
+  const pt = e => { const r = box.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  box.addEventListener('pointerdown', e => {
+    if (!started) return;
+    const p = pt(e), b = Query.point(bodies, p)[0]; if (!b) return;
+    const dx = p.x - b.position.x, dy = p.y - b.position.y, c = Math.cos(-b.angle), s = Math.sin(-b.angle);
+    drag = Constraint.create({ pointA: p, bodyB: b, pointB: { x: dx * c - dy * s, y: dx * s + dy * c }, stiffness: .15, damping: .12, length: 0 });
+    Composite.add(engine.world, drag);
+    box.setPointerCapture(e.pointerId); box.classList.add('grab'); e.preventDefault();
+  });
+  box.addEventListener('pointermove', e => { if (drag) drag.pointA = pt(e); });
+  const drop = () => { if (!drag) return; Composite.remove(engine.world, drag); drag = null; box.classList.remove('grab'); };
+  ['pointerup', 'pointercancel'].forEach(t => box.addEventListener(t, drop));
+
+  /* shake button */
+  $('#shake').addEventListener('click', () => bodies.forEach(b =>
+    Body.setVelocity(b, { x: (Math.random() - .5) * 16, y: -14 - Math.random() * 10 })));
+
+  /* run only while visible, start falling when scrolled into view */
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (runner) runner.enabled = started && visible; }).observe(box);
+  ScrollTrigger.create({ trigger: box, start: 'top 65%', once: true, onEnter: () => { started = true; runner.enabled = visible; } });
+  gsap.from('.reviews .sec-head', { y: 50, opacity: 0, duration: 1, ease: 'power3.out', scrollTrigger: { trigger: '.reviews', start: 'top 85%' } });
+
+  (document.fonts && document.fonts.ready || Promise.resolve()).then(build);   // measure after fonts load
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(build, 300); });
+})();
 })();
