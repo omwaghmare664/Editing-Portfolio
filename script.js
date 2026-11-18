@@ -210,9 +210,9 @@ document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded'
   /* ---------- Reviews with gravity (Matter.js) ---------- */
 (() => {
   const box = $('#gravity'); if (!box || !window.Matter) return;
-  const { Engine, Runner, Bodies, Body, Composite, Constraint, Query } = Matter;
+  const { Engine, Runner, Bodies, Body, Composite, Constraint, Query, Events } = Matter;
   const cards = $$('.rcard', box);
-  $$('.stars', box).forEach(s => s.innerHTML = '<i></i>'.repeat(5));
+  $$('.stars', box).forEach(s =>   s.innerHTML = [0, 1, 2, 3, 4].map(i => `<i style="--f:${Math.max(0, Math.min(1, r - i)) * 100}%"></i>`).join('') + `<em>${r.toFixed(1)}</em>`;
   let engine, runner, bodies = [], drag = null, started = false, visible = false;
 
   const build = () => {
@@ -229,10 +229,19 @@ document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded'
       const w = el.offsetWidth, h = el.offsetHeight;
       const b = Bodies.rectangle(W * (.2 + .6 * Math.random()), -h - i * h * 1.15, w, h,
         { chamfer: { radius: 22 }, restitution: .25, friction: .5, frictionAir: .012 });
-      Body.setAngle(b, (Math.random() - .5) * .9);
+     Body.setAngle(b, (Math.random() - .5) * .5);
       b.el = el; b.w = w; b.h = h; return b;
     });
     Composite.add(engine.world, bodies);
+        // self-righting: a gentle torque brings every card back to upright
+    Events.on(engine, 'beforeUpdate', () => bodies.forEach(b => {
+      const a = Math.atan2(Math.sin(b.angle), Math.cos(b.angle));      // angle from upright, -π..π
+      const held = drag && drag.bodyB === b;
+      Body.setAngularVelocity(b, b.angularVelocity * .92 - a * (held ? .008 : .03));
+      if (!held && Math.abs(a) < .015 && Math.abs(b.angularVelocity) < .004) {   // snap the last bit
+        Body.setAngle(b, b.angle - a); Body.setAngularVelocity(b, 0);
+      }
+    }));
     runner = Runner.create(); runner.enabled = started && visible; Runner.run(runner, engine);
   };
 
@@ -255,8 +264,10 @@ document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded'
   ['pointerup', 'pointercancel'].forEach(t => box.addEventListener(t, drop));
 
   /* shake button */
-  $('#shake').addEventListener('click', () => bodies.forEach(b =>
-    Body.setVelocity(b, { x: (Math.random() - .5) * 16, y: -14 - Math.random() * 10 })));
+    $('#shake').addEventListener('click', () => bodies.forEach(b => {
+    Body.setVelocity(b, { x: (Math.random() - .5) * 16, y: -14 - Math.random() * 10 });
+    Body.setAngularVelocity(b, (Math.random() - .5) * .35);
+  }));
 
   /* run only while visible, start falling when scrolled into view */
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (runner) runner.enabled = started && visible; }).observe(box);
