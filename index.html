@@ -1,564 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>Om Waghmare | Video Editor</title>
-  <meta name="description" content="Om Waghmare is a video editor with 3+ years of experience, 150+ projects and 50+ collaborators, working remotely from India for clients globally.">
-  <meta name="theme-color" content="#EDE8DD">
-  <meta name="p:domain_verify" content="78b3389ef14bd9226908957721b9c156">
-
-  <meta property="og:title" content="Om Waghmare | Video Editor">
-  <meta property="og:description" content="Video editor with 3+ years of experience, 150+ projects and 50+ collaborators. Remote, from India.">
-  <meta property="og:type" content="website">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap">
-
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="/style.css">
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": "Om Waghmare",
-    "jobTitle": "Video Editor",
-    "description": "Video editor with 3+ years of experience, 150+ projects and 50+ collaborators, working remotely from India for clients globally.",
-    "sameAs": [
-      "https://www.youtube.com/@omeditz.ae_664",
-      "https://www.instagram.com/omeditz.ae/",
-      "https://discord.gg/DdqjgdbYak"
-    ]
-  }
-  </script>
-  <!-- Lenis for smooth scroll -->
-<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
-
-<!-- GSAP + ScrollTrigger (already there in your setup, but just in case) -->
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Your Name · Video Editor &amp; Motion Designer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!--
-  ============================================================================
-  DESIGN CONTRACT — PHASE 2 (CSS + JS). Reference only, not markup.
-  ============================================================================
-
-  TYPOGRAPHY
-    Display ....... Instrument Serif (roman + italic). Italic reserved for
-                    emphasis words. Print-like, never letterspaced.
-    UI/body/meta .. JetBrains Mono 400 / 500 / 700. Timecodes, labels, nav,
-                    body copy at a short measure.
-    Scale ......... perfect fourth (x1.333) from 16px:
-                    16 / 21 / 28 / 38 / 50 / 67 / 90
-                    Fluid display tier (hero name, section numerals, footer
-                    wordmark) runs up to ~22vw.
-    Tracking ...... display -0.04em at 96px and above; -0.02em from 48-96px.
-                    Mono uppercase labels +0.08em at 11-12px.
-    Leading ....... display line-height 0.82-0.9; body 1.65, measure <= 60ch.
-
-  COLOUR TOKENS
-    --canvas   #EDE8DD  warm bone background
-    --ink      #16130F  text, heavy rules
-    --ink-muted#5E574C  secondary text, captions
-    --surface  #E2DCCE  form panel only
-    --hairline #B8B0A0  1px rules
-    --accent   #1F3BFF  cobalt — the only accent
-
-    Contrast: ink/canvas ~15:1; ink-muted/canvas ~5.7:1; accent/canvas ~5.4:1.
-    Inverted band (hero reel strip + footer): canvas on ink, muted text
-    #A39B8B (~6.7:1). On ink the accent is a fill only, never text.
-    Accent coverage: <= 5% of any viewport — playhead, active filter, CTA,
-    link underline, text selection. Nowhere else.
-
-  LAYOUT GRAMMAR
-    Grid ......... 4 cols < 768px; 8 cols >= 768px; 12 cols >= 1024px.
-                   Max width 1600px. Gutters 16px, then 24px.
-    Breakpoints .. 360 / 768 / 1024 / 1440.
-                   >= 1024px the scrub-nav becomes a vertical left rail;
-                   below that it is a horizontal timeline bar. Same markup,
-                   no hamburger, no duplicate nav.
-    Splits ....... never 6/6. Use 7/5, 8/4, 5/7, 3/9. Asymmetric splits have
-                   their own wrappers: .about-intro / .about-body.
-    Breaks ....... hero name bleeds off the right edge; section index numerals
-                   hang in the left margin; footer wordmark bleeds off bottom.
-    Rules ......... hairlines, not boxes. 1px rules separate rows and cards.
-                   2px ink rules mark section tops. Nothing rounded, shadowed
-                   or boxed.
-
-  MOTION HOOKS (attributes are already in the DOM)
-    - playhead tracks scroll position along .scrub-nav (data-playhead)
-    - line-by-line mask-wipe reveals of display type: fast-in, slow-settle,
-      400-600ms, cubic-bezier(0.2, 0.8, 0.2, 1)
-    - skippable one-time film-leader countdown that never blocks content
-    - viewfinder corner-mark on work-card hover
-    Work filtering is a hard cut — no fades, no slides. Nothing else moves.
-    No parallax, no glow, no ambient loops. prefers-reduced-motion => instant
-    state changes.
-
-  ============================================================================
-  CLASS INVENTORY
-  ============================================================================
-    Layout/chrome .. skip-link, film-leader, leader-count, leader-skip,
-                     site-header, header-mark, wordmark, header-role,
-                     header-meta, header-tz, header-reel, scrub-nav,
-                     scrub-list, scrub-time, scrub-label, playhead,
-                     scrub-ticks, site-footer, footer-colophon, footer-nav,
-                     footer-socials, footer-clock, footer-top, footer-tag,
-                     footer-wordmark
-    Hero ........... hero, hero-eyebrow, hero-title, hero-title-line,
-                     hero-role, hero-role-tools, hero-copy, hero-stats,
-                     hero-reel, hero-reel-link, hero-reel-label,
-                     hero-reel-title, hero-reel-meta, hero-actions
-    Sections ....... section-head, section-index, section-timecode,
-                     section-sub
-    Work ........... work-filters, loading-text, work-count, work-grid-wrap,
-                     work-grid, work-status, work-reset, work-card,
-                     work-index, work-title, work-meta, video-modal,
-                     video-modal-close, video-modal-frame
-    About .......... about-intro, about-portrait, about-pull, about-body,
-                     skill-list, about-tools, toolchain, about-facts
-    Clients ........ client-roll
-    Services ....... services-strip
-    Contact ........ contact-form, form-row, contact-sub, contact-direct
-
-  ============================================================================
-  DATA HOOK INVENTORY (behaviour only — never used for styling)
-  ============================================================================
-    data-reveal="rise | wipe | fade"   hero lines, section heads, work cards,
-                                       service items
-    data-reveal-stagger                .work-grid, .services-strip
-    data-scrub-target                  nav links
-    data-playhead                      playhead element
-    data-filter                        filter buttons (rendered by JS)
-    data-category                      work cards
-    data-filter-count                  work counter
-    data-lightbox="video"              every video link
-    data-youtube-id                    every video link
-    data-reel                          hero reel figure
-    data-field                         optional caption fields
-    data-leader                        film leader
-    data-local-time="Asia/Kolkata"     header + footer clocks
-    data-work-status                   work grid loading line
-    data-placeholder="true"            hero reel + fallback poster only
-
-  ============================================================================
-  WIRING TABLE (section 3b) — legacy mount points, do not rename
-  ============================================================================
-    categoryRow    div.work-filters          mount for category buttons
-    drawerWrapper  div.work-grid-wrap        wraps the grid
-    drawerContent  div.work-grid             mount for work cards (never a drawer)
-    drawerClose    button.work-reset[hidden] resets the filter
-    clientsGrid    div.client-roll           mount for clients-script.js
-    contactForm    form#contactForm          Web3Forms submit
-    submitBtn      form button[type=submit]  existing submit logic
-    formFeedback   div[role=status]          existing submit feedback
-  ============================================================================
--->
-
-<a class="skip-link" href="#main">Skip to content</a>
-
-<div class="film-leader" data-leader aria-hidden="true">
-  <ol class="leader-count">
-    <li>3</li>
-    <li>2</li>
-    <li>1</li>
-  </ol>
-  <button class="leader-skip" type="button">Skip</button>
-</div>
-
-<header class="site-header">
-  <div class="header-mark">
-    <a class="wordmark" href="#home">Om Waghmare</a>
-    <p class="header-role">Video Editor</p>
-  </div>
-  <div class="header-meta">
-    <p class="header-location">Remote · From India</p>
-    <p class="header-clock"><time data-local-time="Asia/Kolkata">00:00</time> <span class="header-tz">IST</span></p>
-    <a class="header-reel" href="#showreel">Watch reel</a>
-  </div>
-</header>
-
-<nav class="scrub-nav" aria-label="Primary">
-  <ol class="scrub-list">
-    <li><a href="#home" data-scrub-target="home"><span class="scrub-time">00:00</span><span class="scrub-label">Intro</span></a></li>
-    <li><a href="#work" data-scrub-target="work"><span class="scrub-time">00:12</span><span class="scrub-label">Work</span></a></li>
-    <li><a href="#about" data-scrub-target="about"><span class="scrub-time">00:34</span><span class="scrub-label">About</span></a></li>
-    <li><a href="#clients" data-scrub-target="clients"><span class="scrub-time">00:48</span><span class="scrub-label">Clients</span></a></li>
-    <li><a href="#services" data-scrub-target="services"><span class="scrub-time">01:02</span><span class="scrub-label">Services</span></a></li>
-    <li><a href="#contact" data-scrub-target="contact"><span class="scrub-time">01:20</span><span class="scrub-label">Contact</span></a></li>
-  </ol>
-  <span class="playhead" data-playhead aria-hidden="true"></span>
-  <span class="scrub-ticks" aria-hidden="true"></span>
+<nav class="nav glass">
+  <a class="npfp" href="#top" aria-label="Home">YN<!-- or <img src="pfp.jpg" alt=""> --></a>
+  <span class="nname">Your Name</span>
+  <a href="#reels">Reels</a><a href="#films">Films</a><a href="#about">About</a><a href="#faq">FAQ</a>
 </nav>
 
-<main id="main">
+<header class="hero" id="top"><div class="wrap">
+  <div class="chip glass"><span class="npfp sm">YN</span>Available for new projects</div>
+  <h1 class="hero-title"><span class="ln">Visuals that</span><span class="ln"><span class="hl">feel alive.</span></span></h1>
+  <p class="sub">Video editor &amp; motion designer crafting short-form and cinematic stories for creators and brands.</p>
+  <div class="row"><a class="btn solid" href="work.html">See Best Work →</a><a class="btn glass" href="#reels">Watch reels</a></div>
+  <div class="hero-reel"><div class="player wide" data-yt="jrb40f3MnwQ" data-label="Showreel 2026" data-zoom="1.15"></div></div>
+</div></header>
 
-  <section class="hero" id="home" aria-labelledby="home-heading">
+<section class="reels" id="reels">
+  <div class="sec-head"><span class="eyebrow">Short-form</span><h2>Made for the <span class="hl">scroll.</span></h2><div class="counter">01 / 03</div></div>
+  <div class="rail">
+    <div class="player tall" data-yt="sZBBW3B-6AM" data-label="Reel 01"></div>
+    <div class="player tall" data-yt="4O6HMSDieUE" data-label="Reel 02"></div>
+    <div class="player tall" data-yt="2ISanboq8Oc" data-label="Reel 03"></div>
+  </div>
+</section>
 
-    <p class="hero-eyebrow">
-      <span>Portfolio 2026</span>
-      <span>Video Editor</span>
-      <span>Remote · India (UTC+5:30)</span>
-    </p>
+<section class="films" id="films"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Long-form</span><h2>Stories worth <span class="hl">staying for.</span></h2></div>
+  <div class="player wide film" data-yt="1viBfGMXfS0" data-label="Film 01" data-zoom="1.15"></div>
+  <div class="player wide film r" data-yt="RV9t_7aT8lQ" data-label="Film 02" data-zoom="1.15"></div>
+</div></section>
 
-    <h1 class="hero-title" id="home-heading">
-      <span class="hero-title-line" data-reveal="wipe">Om</span>
-      <span class="hero-title-line" data-reveal="wipe">Waghmare</span>
-    </h1>
+<section class="cta"><div class="cta-card">
+  <span class="eyebrow">Selected work</span>
+  <h2>See the projects that<br><span class="hl">moved the needle.</span></h2>
+  <a class="btn black" href="work.html">See Best Work →</a>
+</div></section>
 
-    <p class="hero-role" data-reveal="rise">Video Editor</p>
-    <p class="hero-role-tools">Premiere Pro · After Effects · Blender</p>
-
-    <p class="hero-copy" data-reveal="rise">Hi I am Om a Video editor with 3+ years of experience in making premium styles, visuals and smoothness in video. I aim for making your content not just viral edit but also attention grabbing visuals that make viewer to process and think.</p>
-
-    <dl class="hero-stats">
-      <div>
-        <dt>100+</dt>
-        <dd>projects</dd>
-      </div>
-      <div>
-        <dt>20+</dt>
-        <dd>Happy Clients</dd>
-      </div>
-      <div>
-        <dt>3+</dt>
-        <dd>years pro</dd>
-      </div>
-    </dl>
-
-    <!-- TODO (phase 2): fill data-youtube-id from data.showreel if present, otherwise from the first video of the first category. Poster falls back to HowIMade.jpg. -->
-    <figure class="hero-reel" id="showreel" data-reel data-placeholder="true">
-      <a class="hero-reel-link" href="https://youtu.be/jrb40f3MnwQ"
-   data-youtube-id="jrb40f3MnwQ"
-   data-lightbox="video">
-        <img src="/thumbnails/thumbnailshowreel.png" width="1280" height="720" alt="Showreel preview frame" data-placeholder="true">
-        <span class="hero-reel-label">Play showreel</span>
-      </a>
-      <figcaption>
-        <span class="hero-reel-title">Showreel</span>
-        <dl class="hero-reel-meta">
-          <div>
-            <dt>Type</dt>
-            <dd data-field="type">Selected work</dd>
-          </div>
-          <div>
-            <dt>Client</dt>
-            <dd data-field="client"></dd>
-          </div>
-          <div>
-            <dt>Duration</dt>
-            <dd data-field="duration"></dd>
-          </div>
-          <div>
-            <dt>Year</dt>
-            <dd data-field="year"></dd>
-          </div>
-        </dl>
-      </figcaption>
-    </figure>
-
-    <p class="hero-actions">
-      <a href="#work">See selected work</a>
-      <a href="#contact">Start a project</a>
-    </p>
-
-  </section>
-
-  <section id="work" aria-labelledby="work-heading">
-
-    <header class="section-head" data-reveal="wipe">
-      <p class="section-index">01</p>
-      <h2 id="work-heading">Selected Work</h2>
-      <p class="section-timecode">00:00:12:00</p>
-    </header>
-
-    <div class="work-filters" id="categoryRow" role="group" aria-label="Filter projects by category">
-      <div class="loading-text"><i class="fas fa-spinner fa-pulse"></i> Loading categories...</div>
+<section class="about" id="about"><div class="wrap">
+  <div class="about-grid">
+    <aside class="me glass">
+      <div class="me-pfp">YOUR PHOTO<!-- or <img src="pfp.jpg" alt="Your Name"> --></div>
+      <h3>Your Name</h3>
+      <p class="role">Video Editor &amp; Motion Designer<br>Based in [Your City]</p>
+      <div class="tags"><span>Premiere Pro</span><span>After Effects</span><span>DaVinci</span></div>
+      <a class="btn solid" href="#faq">Let’s work together</a>
+    </aside>
+    <div>
+      <span class="eyebrow">About me</span>
+      <p class="bio" id="bio">I’m a creative editor obsessed with rhythm, story and detail. I turn raw footage into scroll-stopping content for creators and brands who want to look unforgettable.</p>
     </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><strong data-n="120" data-s="+">120+</strong><span>Projects delivered</span></div>
+    <div class="stat"><strong data-n="48" data-s="h">48h</strong><span>Short-form turnaround</span></div>
+    <div class="stat"><strong data-n="25" data-s="M">25M</strong><span>Views generated</span></div>
+  </div>
+  <div class="faq" id="faq">
+    <span class="eyebrow">FAQ</span><h2>Good <span class="hl">questions.</span></h2>
+    <div class="item open"><button class="q" aria-expanded="true">How fast is turnaround?<i><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></i></button><div class="a"><div><p>Short-form edits ship in 48 hours. Long-form projects take 4 to 7 days.</p></div></div></div>
+    <div class="item"><button class="q" aria-expanded="false">How many revisions are included?<i><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></i></button><div class="a"><div><p>Two rounds of revisions are included with every project.</p></div></div></div>
+    <div class="item"><button class="q" aria-expanded="false">Which software do you use?<i><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></i></button><div class="a"><div><p>Premiere Pro, After Effects and DaVinci Resolve.</p></div></div></div>
+  </div>
+</div></section>
 
-    <p class="work-count" data-filter-count aria-live="polite"></p>
+<footer class="footer"><div class="wrap">
+  <span class="eyebrow">Got a project?</span>
+  <div class="big">Let’s talk.</div>
+  <div class="social"><a class="glass dark" href="#">Instagram</a><a class="glass dark" href="#">YouTube</a><a class="glass dark" href="#">LinkedIn</a><a class="glass dark" href="mailto:you@example.com">Email</a></div>
+  <small>© 2026 Your Name. All rights reserved.</small>
+</div></footer>
 
-    <div class="work-grid-wrap" id="drawerWrapper">
-      <div class="work-grid" id="drawerContent" data-reveal-stagger>
-        <p class="work-status" data-work-status>Loading projects…</p>
-        <noscript>
-          <p>Turn on JavaScript to browse the work grid, or <a href="https://www.youtube.com/@omeditz.ae_664" target="_blank" rel="noopener noreferrer">watch everything on YouTube</a>.</p>
-        </noscript>
-      </div>
-    </div>
-
-    <button class="work-reset" id="drawerClose" type="button" hidden>Show all work</button>
-
-    <!--
-      workCardTemplate — the exact markup phase 2 JS clones for each card.
-      JS rules: type defaults to the category name; title comes from data.json
-      if present, otherwise the YouTube oEmbed title; if neither exists, the
-      index is the only label. Any <div> pair whose dd[data-field] has no data
-      is omitted entirely.
-    -->
-    <template id="workCardTemplate">
-      <article class="work-card" data-category="" data-reveal="rise">
-        <figure>
-          <a data-lightbox="video" data-youtube-id="" href="">
-            <img width="1280" height="720" loading="lazy" decoding="async" alt="">
-          </a>
-          <figcaption>
-            <span class="work-index">No. 01</span>
-            <h3 class="work-title"></h3>
-            <dl class="work-meta">
-              <div>
-                <dt>Type</dt>
-                <dd data-field="type"></dd>
-              </div>
-              <div>
-                <dt>Client</dt>
-                <dd data-field="client"></dd>
-              </div>
-              <div>
-                <dt>Duration</dt>
-                <dd data-field="duration"></dd>
-              </div>
-              <div>
-                <dt>Year</dt>
-                <dd data-field="year"></dd>
-              </div>
-            </dl>
-          </figcaption>
-        </figure>
-      </article>
-    </template>
-
-    <!-- Esc closes the modal via native <dialog> behaviour; phase 2 JS wires the close button and the cancel event. -->
-    <dialog class="video-modal" id="videoModal" aria-label="Video player">
-      <button class="video-modal-close" type="button">Close</button>
-      <div class="video-modal-frame"></div>
-    </dialog>
-
-  </section>
-
-  <section id="about" aria-labelledby="about-heading">
-
-    <header class="section-head" data-reveal="wipe">
-      <p class="section-index">02</p>
-      <h2 id="about-heading">Editing as an instinct</h2>
-      <p class="section-timecode">00:00:34:00</p>
-      <p class="section-sub">rhythm · texture · emotional cut</p>
-    </header>
-
-    <div class="about-intro">
-      <figure class="about-portrait">
-        <img src="Comp%201_00000.jpg" width="450" height="450" alt="Portrait of Om Waghmare">
-        <figcaption>Om Waghmare</figcaption>
-      </figure>
-      <p class="about-pull">I aim for making your content not just viral edit but also attention grabbing visuals that make viewer to process and think.</p>
-    </div>
-
-    <div class="about-body">
-      <h3>My journey</h3>
-      <p>I started my journey in late 2020 with mobile video editing. I created simple music edits and learned the fundamentals of editing. Later, in 2023, I started editing on PC and began creating high-quality edits.</p>
-
-      <ul class="skill-list" aria-label="Skills">
-        <li>Story pacing</li>
-        <li>Smooth animation</li>
-        <li>3D work</li>
-        <li>SFX design</li>
-        <li>Kinetic typography</li>
-      </ul>
-    </div>
-
-    <div class="about-tools">
-      <h3>Softwares I use</h3>
-      <ul class="toolchain" aria-label="Software">
-        <li>
-          <img src="https://static.vecteezy.com/system/resources/thumbnails/046/437/285/small/adobe-premiere-pro-icon-free-png.png" alt="" width="32" height="32" loading="lazy" decoding="async">
-          <span class="tool-name">Adobe Premiere Pro</span>
-          <span class="tool-note">multicam, proxy workflows, precision trimming, screen-cam</span>
-        </li>
-        <li>
-          <img src="https://static.vecteezy.com/system/resources/thumbnails/055/138/449/small/adobe-after-effect-logo-square-rounded-adobe-after-effect-logo-adobe-after-effect-logo-free-download-free-png.png" alt="" width="32" height="32" loading="lazy" decoding="async">
-          <span class="tool-name">After Effects</span>
-          <span class="tool-note">motion graphics, VFX &amp; Animations</span>
-        </li>
-        <li>
-          <img src="https://static.vecteezy.com/system/resources/thumbnails/049/116/750/small/blender-transparent-background-icon-free-png.png" alt="" width="32" height="32" loading="lazy" decoding="async">
-          <span class="tool-name">Blender</span>
-          <span class="tool-note">3d work, modeling, 3d animation</span>
-        </li>
-      </ul>
-    </div>
-
-    <dl class="about-facts">
-      <div>
-        <dt>Based in</dt>
-        <dd>India</dd>
-      </div>
-      <div>
-        <dt>Works</dt>
-        <dd>Remote, globally</dd>
-      </div>
-      <div>
-        <dt>Started</dt>
-        <dd>Late 2020 (mobile)</dd>
-      </div>
-      <div>
-        <dt>On PC since</dt>
-        <dd>2023</dd>
-      </div>
-    </dl>
-
-  </section>
-
-  <section id="clients" aria-labelledby="clients-heading">
-
-    <header class="section-head" data-reveal="wipe">
-      <p class="section-index">03</p>
-      <h2 id="clients-heading">Clients &amp; Collaborators</h2>
-      <p class="section-timecode">00:00:48:00</p>
-      <p class="section-sub">20+ collaborators across 100+ projects</p>
-    </header>
-
-    <div class="client-roll" id="clientsGrid">
-      <div class="loading-text"><i class="fas fa-spinner fa-pulse"></i> Loading clients...</div>
-    </div>
-
-  </section>
-
-  <section id="services" aria-labelledby="services-heading">
-
-    <header class="section-head" data-reveal="wipe">
-      <p class="section-index">04</p>
-      <h2 id="services-heading">Services</h2>
-      <p class="section-timecode">00:01:02:00</p>
-    </header>
-
-    <ul class="services-strip" data-reveal-stagger>
-      <li data-reveal="rise">
-        <h3>Fast delivery</h3>
-        <p>Deliver work on time</p>
-      </li>
-      <li data-reveal="rise">
-        <h3>Retention-driven</h3>
-        <p>hook &amp; hold analytics</p>
-      </li>
-      <li data-reveal="rise">
-        <h3>4K / vertical export</h3>
-        <p>multi-ratio deliverable</p>
-      </li>
-    </ul>
-
-  </section>
-
-  <section id="contact" aria-labelledby="contact-heading">
-
-    <header class="section-head" data-reveal="wipe">
-      <p class="section-index">05</p>
-      <h2 id="contact-heading">Collaborate</h2>
-      <p class="section-timecode">00:01:20:00</p>
-      <p class="section-sub contact-sub" data-reveal="rise">Let’s bring your vision to cut</p>
-    </header>
-
-    <form class="contact-form" id="contactForm" action="https://api.web3forms.com/submit" method="POST">
-      <input type="hidden" name="access_key" value="3dbdc96c-cbc4-49bb-b170-fc63525468b9">
-      <input type="hidden" name="subject" value="Edit Inquiry - Om Waghmare">
-
-      <div class="form-row">
-        <label for="field-name">Your name</label>
-        <input id="field-name" type="text" name="name" required autocomplete="name">
-      </div>
-
-      <div class="form-row">
-        <label for="field-email">Email address</label>
-        <input id="field-email" type="email" name="email" required autocomplete="email">
-      </div>
-
-      <div class="form-row">
-        <label for="field-whatsapp">WhatsApp number</label>
-        <input id="field-whatsapp" type="tel" name="whatsapp" required autocomplete="tel">
-      </div>
-
-      <div class="form-row">
-        <label for="field-project-type">Project type</label>
-        <select id="field-project-type" name="project_type" required>
-          <option value="" disabled selected>Select one</option>
-          <option value="YouTube longform">YouTube longform</option>
-          <option value="Instagram">Instagram</option>
-          <option value="TikTok reel">TikTok reel</option>
-          <option value="Documentary">Documentary</option>
-          <option value="short film">short film</option>
-          <option value="Commercial">Commercial</option>
-          <option value="brand film">brand film</option>
-        </select>
-      </div>
-
-      <div class="form-row">
-        <label for="field-budget">Estimated budget</label>
-        <input id="field-budget" type="text" name="budget" placeholder="$50 - $100">
-      </div>
-
-      <div class="form-row">
-        <label for="field-message">Describe your project</label>
-        <textarea id="field-message" name="message" required placeholder="describe your project, deadline and creative references..."></textarea>
-      </div>
-
-      <button type="submit" id="submitBtn">Send inquiry</button>
-
-      <div id="formFeedback" role="status" aria-live="polite" hidden></div>
-    </form>
-
-    <address class="contact-direct">
-      <a href="https://www.youtube.com/@omeditz.ae_664" target="_blank" rel="noopener noreferrer">YouTube</a>
-      <a href="https://www.instagram.com/omeditz.ae/" target="_blank" rel="noopener noreferrer">Instagram</a>
-      <a href="https://discord.gg/DdqjgdbYak" target="_blank" rel="noopener noreferrer">Discord</a>
-      <p>I will reply within 24h.</p>
-    </address>
-
-  </section>
-
-</main>
-
-<footer class="site-footer">
-
-  <p class="footer-colophon">Set in Instrument Serif and JetBrains Mono. Edited in Premiere Pro, After Effects and Blender.</p>
-
-  <nav class="footer-nav" aria-label="Footer">
-    <ul>
-      <li><a href="#home">Intro</a></li>
-      <li><a href="#work">Work</a></li>
-      <li><a href="#about">About</a></li>
-      <li><a href="#clients">Clients</a></li>
-      <li><a href="#services">Services</a></li>
-      <li><a href="#contact">Contact</a></li>
-    </ul>
-  </nav>
-
-  <ul class="footer-socials">
-    <li><a href="https://www.youtube.com/@omeditz.ae_664" target="_blank" rel="noopener noreferrer">YouTube</a></li>
-    <li><a href="https://www.instagram.com/om_waghmare664/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
-    <li><a href="https://discord.gg/DdqjgdbYak" target="_blank" rel="noopener noreferrer">Discord</a></li>
-  </ul>
-
-  <p class="footer-clock"><time data-local-time="Asia/Kolkata">00:00</time> <span>IST</span></p>
-
-  <a class="footer-top" href="#home">Back to top</a>
-
-  <small>© Om Waghmare — From India · Remote work globally</small>
-
-  <p class="footer-tag">END OF REEL</p>
-
-  <p class="footer-wordmark" aria-hidden="true">Om Waghmare</p>
-
-</footer>
-
-<script src="clients-script.js"></script>
-<script src="/script.js" defer></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
