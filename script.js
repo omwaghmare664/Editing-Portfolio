@@ -1,644 +1,210 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // ── 1. DOM refs ─────────────────────────────────────────────
-  const template   = document.getElementById('workCardTemplate');
-  const grid       = document.getElementById('drawerContent');
-  const filterRow  = document.getElementById('categoryRow');
-  const resetBtn   = document.getElementById('drawerClose');
-  const counter    = document.querySelector('[data-filter-count]');
-  const status     = document.querySelector('[data-work-status]');
+/* app.js: Lenis + GSAP + custom YouTube player */
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const modal      = document.getElementById('videoModal');
-  const modalFrame = modal?.querySelector('.video-modal-frame');
-  const closeBtn   = modal?.querySelector('.video-modal-close');
+/* ---------- SVG icons (no emoji) ---------- */
+const P = {
+  play: '<polygon points="6 4 20 12 6 20 6 4"/>',
+  pause: '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>',
+  on: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  off: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/>'
+};
+const svg = (k, s = 18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="${/play|pause/.test(k) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[k]}</svg>`;
+const store = {
+  get: () => { try { return sessionStorage.getItem('unmuted') === '1'; } catch (e) { return false; } },
+  set: () => { try { sessionStorage.setItem('unmuted', '1'); } catch (e) {} }
+};
+const fmt = s => { s = Math.max(0, s | 0); return (s / 60 | 0) + ':' + String(s % 60).padStart(2, '0'); };
 
-  let allCards    = [];
-  let modalPlayer = null;
-
-  const hasGsap = typeof gsap !== 'undefined';
-  const hasScrollTrigger = typeof ScrollTrigger !== 'undefined';
-  if (hasGsap && hasScrollTrigger) gsap.registerPlugin(ScrollTrigger);
-
-  // ── 2. YouTube IFrame API (shared loader) ───────────────────
-  let _ytApiPromise = null;
-  function loadYTApi() {
-    if (window.YT && window.YT.Player) return Promise.resolve(window.YT);
-    if (_ytApiPromise) return _ytApiPromise;
-    _ytApiPromise = new Promise((resolve) => {
+/* ---------- VideoPlayer: YouTube with 100% custom UI ---------- */
+class VideoPlayer {
+  static all = []; static audible = null; static api = null;
+  static load() {
+    return VideoPlayer.api ||= new Promise((res, rej) => {
+      if (window.YT && YT.Player) return res();
       const prev = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        prev && prev();
-        resolve(window.YT);
-      };
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      document.head.appendChild(tag);
+      window.onYouTubeIframeAPIReady = () => { prev && prev(); res(); };
+      const s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api'; s.onerror = rej; document.head.appendChild(s);
     });
-    return _ytApiPromise;
+  }
+  constructor(el) {
+    this.el = el; this.id = (el.dataset.yt || '').trim();
+    this.ready = false; this.want = false; this.playing = false; this.muted = true; this.pendingUnmute = false; this.drag = false;
+    if (!this.id) return el.classList.add('error');
+    el.style.setProperty('--zoom', el.dataset.zoom || 1);
+    el.innerHTML = `
+      <div class="poster" style="background-image:url(https://i.ytimg.com/vi/${this.id}/hqdefault.jpg)"></div>
+      <div class="stage"><div class="mount"></div></div>
+      <div class="shield"></div>
+      <span class="tag glass dark">${el.dataset.label || ''}</span>
+      <button class="unmute glass dark" aria-label="Unmute">${svg('off', 16)}<span>Tap to unmute</span></button>
+      <div class="bar glass dark">
+        <button class="pp" aria-label="Play or pause">${svg('pause')}</button>
+        <div class="track"><div class="fill"></div></div>
+        <span class="time">0:00 / 0:00</span>
+        <button class="mu" aria-label="Mute or unmute">${svg('off')}</button>
+      </div>
+      <div class="err">This video can't be embedded. Check the ID or that embedding is allowed.</div>`;
+    const q = s => $(s, el);
+    this.mount = q('.mount'); this.fill = q('.fill'); this.time = q('.time'); this.track = q('.track');
+    this.pp = q('.pp'); this.mu = q('.mu');
+    q('.shield').onclick = () => this.toggle();
+    this.pp.onclick = () => this.toggle();
+    this.mu.onclick = () => this.muted ? this.unmute() : this.mute();
+    q('.unmute').onclick = () => this.unmute();
+    const seek = x => {
+      if (!this.ready) return;
+      const d = this.yt.getDuration(); if (!d) return;
+      const r = this.track.getBoundingClientRect(), p = Math.min(1, Math.max(0, (x - r.left) / r.width));
+      this.yt.seekTo(p * d, true); this.fill.style.width = p * 100 + '%'; this.time.textContent = fmt(p * d) + ' / ' + fmt(d);
+    };
+    this.track.addEventListener('pointerdown', e => { this.drag = true; this.track.setPointerCapture(e.pointerId); seek(e.clientX); });
+    this.track.addEventListener('pointermove', e => this.drag && seek(e.clientX));
+    ['pointerup', 'pointercancel'].forEach(t => this.track.addEventListener(t, () => this.drag = false));
+    el.addEventListener('touchstart', () => el.classList.add('touch'), { passive: true });
+    new IntersectionObserver(([e]) => e.isIntersecting ? this.enter() : this.leave(), { threshold: .5, rootMargin: el.classList.contains('tall') ? '0px -22% 0px -22%' : '0px' }).observe(el);
+    VideoPlayer.all.push(this);
+    VideoPlayer.load().then(() => this.init()).catch(() => el.classList.add('error'));
+    setInterval(() => this.tick(), 250);
+  }
+  init() {
+    const v = { controls: 0, disablekb: 1, fs: 0, modestbranding: 1, rel: 0, iv_load_policy: 3, cc_load_policy: 0, playsinline: 1, loop: 1, playlist: this.id, mute: 1, autoplay: 0 };
+    if (location.protocol.startsWith('http')) v.origin = location.origin;
+    this.yt = new YT.Player(this.mount, {
+      host: 'https://www.youtube-nocookie.com', videoId: this.id, playerVars: v,
+      events: {
+        onReady: () => { this.ready = true; this.yt.mute(); if (this.want) this.yt.playVideo(); if (this.pendingUnmute) this.autoUnmute(); },
+        onStateChange: e => this.sync(e.data),
+        onError: () => this.el.classList.add('error')
+      }
+    });
+  }
+  sync(s) {
+    this.last = s; this.playing = s === 1 || s === 3;
+    if (s === 1) this.el.classList.add('started');
+    if (s === 1 || s === 3) this.el.classList.remove('paused');
+    else if (s === 2 || s === 0) this.el.classList.add('paused');
+    this.icons();
+  }
+  icons() { this.pp.innerHTML = svg(this.playing ? 'pause' : 'play'); this.mu.innerHTML = svg(this.muted ? 'off' : 'on'); this.el.classList.toggle('sound', !this.muted); }
+  tick() {
+    if (!this.ready || this.drag) return;
+    const st = this.yt.getPlayerState(); if (st !== this.last) this.sync(st);   // self-heal: thumbnail can never stay stuck
+    if (!this.playing) return;
+    const d = this.yt.getDuration(), c = this.yt.getCurrentTime(); if (!d) return;
+    this.fill.style.width = c / d * 100 + '%'; this.time.textContent = fmt(c) + ' / ' + fmt(d);
+  }
+  play() { this.want = true; this.ready && this.yt.playVideo(); }
+  pause() { this.want = false; this.ready && this.yt.pauseVideo(); }
+  toggle() { if (!this.ready) { this.want = true; return; } this.yt.getPlayerState() === 1 ? this.pause() : this.play(); }
+  mute() {
+    this.muted = true; this.ready && this.yt.mute();
+    if (VideoPlayer.audible === this) VideoPlayer.audible = null;
+    this.icons();
+  }
+  unmute() {
+    if (!this.ready) { this.pendingUnmute = true; return; }
+    // SINGLE AUDIO: silence whoever is audible first
+    if (VideoPlayer.audible && VideoPlayer.audible !== this) VideoPlayer.audible.mute();
+    VideoPlayer.audible = this; this.muted = false;
+    this.yt.unMute(); this.yt.setVolume(100); store.set();
+    this.play(); this.icons();
+  }
+  autoUnmute() {   // remembered preference; fall back to muted if the browser blocks it
+    this.pendingUnmute = false;
+    if (VideoPlayer.audible && VideoPlayer.audible !== this) return;
+    this.unmute();
+    setTimeout(() => { if (this.yt.getPlayerState() !== 1) { this.mute(); this.yt.playVideo(); } }, 700);
+  }
+  enter() { this.play(); if (store.get() && this.muted && !VideoPlayer.audible) this.ready ? this.autoUnmute() : this.pendingUnmute = true; }
+  leave() { this.pause(); this.pendingUnmute = false; if (VideoPlayer.audible === this) this.mute(); }
+}
+
+/* ---------- boot ---------- */
+const boot = () => {
+  if (location.protocol === 'file:') console.warn('YouTube embeds fail on file://. Use a local server (Live Server, npx serve) or deploy.');
+  $$('.player[data-yt]').forEach(el => new VideoPlayer(el));
+  if (!window.gsap || !window.ScrollTrigger) return;
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* Lenis + GSAP sync (lerp, no lagSmoothing(0)) */
+  let lenis = null;
+  if (window.Lenis) {
+    lenis = new Lenis({ lerp: 0.1, smoothWheel: true });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add(t => lenis.raf(t * 1000));
+  }
+  $$('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
+    const h = a.getAttribute('href'), t = h.length > 1 && $(h); if (!t) return;
+    e.preventDefault(); lenis ? lenis.scrollTo(t, { offset: -20 }) : t.scrollIntoView({ behavior: 'smooth' });
+  }));
+
+  /* hero intro + parallax */
+  gsap.timeline({ defaults: { ease: 'power3.out' } })
+    .from('.nav', { y: -40, opacity: 0, duration: .9 })
+    .from('.chip', { y: 20, opacity: 0, duration: .7 }, '-=.55')
+    .from('.hero-title .ln', { y: 60, opacity: 0, duration: 1, stagger: .09 }, '-=.35')
+    .from('.sub, .hero .row', { y: 30, opacity: 0, duration: .9, stagger: .1 }, '-=.6')
+    .from('.hero-reel', { scale: .96, opacity: 0, duration: 1.1 }, '-=.6');
+  if (!reduced) gsap.to('.hero-title', { y: -60, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+
+  /* pinned horizontal reels + counter */
+  const rail = $('.rail'), counter = $('.counter');
+  const dist = () => Math.max(0, rail.scrollWidth - innerWidth);
+  if (!reduced && rail && dist() > 0) {
+    gsap.to(rail, {
+      x: () => -dist(), ease: 'none',
+      scrollTrigger: { trigger: '.reels', pin: true, scrub: .6, start: 'top top', end: () => '+=' + dist(), invalidateOnRefresh: true,
+        onUpdate: s => counter.textContent = '0' + Math.min(3, Math.floor(s.progress * 3) + 1) + ' / 03' }
+    });
   }
 
-  // ── 3. Player CSS ───────────────────────────────────────────
-  const YTP_STYLES = `
-    .ytp{position:relative;width:100%;height:100%;background:#000;overflow:hidden;isolation:isolate;color:#fff;outline:none}
-    .ytp-frame,.ytp-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-    .ytp-overlay{position:absolute;inset:0;z-index:2;cursor:pointer;background:transparent;transition:background .2s}
+  /* long-form reveals */
+  $$('.films .player').forEach((el, i) => gsap.from(el, { opacity: 0, scale: .88, y: 80, x: i ? 100 : -100, duration: 1.2, ease: 'power3.out',
+    scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none reverse' } }));
+  $$('.films .sec-head, .cta-card').forEach(el => gsap.from(el, { y: 60, opacity: 0, duration: 1, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 88%' } }));
 
-    /* Our own paused / ended overlay covers YT's native center UI entirely */
-    .ytp.is-paused:not(.is-muted-cta) .ytp-overlay{background:rgba(0,0,0,.45)}
-    .ytp.is-paused:not(.is-muted-cta) .ytp-overlay::after{
-      content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-      width:64px;height:64px;border-radius:50%;
-      background:rgba(0,0,0,.6) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E") center/28px no-repeat;
-      border:2px solid rgba(255,255,255,.3);pointer-events:none
-    }
-    .ytp.is-ended .ytp-overlay{background:rgba(0,0,0,.75)}
-
-    .ytp-controls{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:22px 14px 10px;
-      background:linear-gradient(transparent,rgba(0,0,0,.78));font:12px/1.4 system-ui,sans-serif;
-      transition:opacity .25s,transform .25s}
-    .ytp.is-playing:not(:hover):not(:focus-within):not(.is-paused) .ytp-controls{opacity:0;transform:translateY(6px);pointer-events:none}
-    .ytp.is-ended .ytp-controls,.ytp.is-paused .ytp-controls{opacity:1;transform:none;pointer-events:auto}
-
-    .ytp-timeline{position:relative;height:4px;margin-bottom:10px;background:rgba(255,255,255,.25);
-      border-radius:2px;cursor:pointer;transition:height .15s}
-    .ytp-timeline:hover{height:6px}
-    .ytp-loaded,.ytp-progress{position:absolute;left:0;top:0;bottom:0;border-radius:2px;pointer-events:none}
-    .ytp-loaded{background:rgba(255,255,255,.25);width:0}
-    .ytp-progress{background:#f33;width:0}
-    .ytp-seek{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
-
-    .ytp-row{display:flex;align-items:center;gap:8px}
-    .ytp-row button{background:transparent;border:0;color:#fff;cursor:pointer;padding:5px;
-      border-radius:5px;display:flex;align-items:center;justify-content:center}
-    .ytp-row button:hover{background:rgba(255,255,255,.15)}
-    .ytp-time{font-variant-numeric:tabular-nums;font-size:11px;opacity:.9;white-space:nowrap}
-    .ytp-spacer{flex:1}
-
-    .ytp-unmute{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;
-      display:none;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;
-      background:rgba(0,0,0,.72);backdrop-filter:blur(12px);color:#fff;
-      font:600 14px/1 system-ui,sans-serif;border:1px solid rgba(255,255,255,.3);
-      cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.45);
-      transition:transform .2s,background .2s}
-    .ytp-unmute:hover{background:rgba(0,0,0,.9);transform:translate(-50%,-50%) scale(1.05)}
-    .ytp-unmute svg{flex-shrink:0}
-    .ytp.is-muted-cta .ytp-unmute{display:flex}
-    .ytp.is-muted-cta .ytp-controls{opacity:0!important;pointer-events:none!important}
-
-    .ytp-spinner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-      width:38px;height:38px;border:3px solid rgba(255,255,255,.2);
-      border-top-color:#fff;border-radius:50%;animation:ytp-spin 1s linear infinite;
-      display:none;z-index:4;pointer-events:none}
-    .ytp.is-buffering:not(.is-playing) .ytp-spinner{display:block}
-    @keyframes ytp-spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
-
-    .ytp:focus-visible{outline:2px solid #fff;outline-offset:-4px}
-  `;
-  function injectYTPStyles() {
-    if (document.getElementById('ytp-styles')) return;
-    const s = document.createElement('style');
-    s.id = 'ytp-styles';
-    s.textContent = YTP_STYLES;
-    document.head.appendChild(s);
-  }
-  injectYTPStyles();
-
-  // ── 4. Global single-player registry ────────────────────────
-  let _activePlayer = null;
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && _activePlayer) _activePlayer.pause();
+  /* about: scrubbed word reveal, card, stats counting */
+  const bio = $('#bio');
+  if (bio && !reduced) {
+    bio.innerHTML = bio.textContent.trim().split(/\s+/).map(w => `<span class="w">${w}</span>`).join(' ');
+    gsap.to('.bio .w', { opacity: 1, stagger: .08, ease: 'none', scrollTrigger: { trigger: bio, start: 'top 80%', end: 'bottom 50%', scrub: true } });
+  } else if (bio) bio.style.opacity = 1;
+  gsap.from('.me', { y: 70, opacity: 0, scale: .94, duration: 1.1, ease: 'power3.out', scrollTrigger: { trigger: '.about-grid', start: 'top 85%' } });
+  $$('.stat').forEach((el, i) => {
+    const n = $('strong', el), end = +n.dataset.n, suf = n.dataset.s || '', o = { v: 0 };
+    gsap.from(el, { y: 50, opacity: 0, duration: .9, delay: i * .12, ease: 'power3.out', scrollTrigger: { trigger: '.stats', start: 'top 88%' } });
+    if (reduced) return;
+    n.textContent = '0' + suf;
+    gsap.to(o, { v: end, duration: 1.6, ease: 'power2.out', scrollTrigger: { trigger: '.stats', start: 'top 88%' }, onUpdate: () => n.textContent = Math.round(o.v) + suf });
   });
 
-  // ── 5. YTPlayer class ───────────────────────────────────────
-  class YTPlayer {
-    constructor(container, videoId, opts = {}) {
-      this.container = container;
-      this.videoId = videoId;
-      this.opts = { autoplay: true, muted: true, loop: false, onReady: null, ...opts };
-      this.player = null;
-      this.destroyed = false;
-      this._bufTimeout = null;
-      this.state = { playing: false, ended: false, paused: false, muted: this.opts.muted, current: 0, duration: 0 };
-      this._buildUI();
-      this._mount();
-    }
+  /* FAQ accordion */
+  $$('.item').forEach(it => $('.q', it).addEventListener('click', () => {
+    const was = it.classList.contains('open');
+    $$('.item').forEach(x => { x.classList.remove('open'); $('.q', x).setAttribute('aria-expanded', 'false'); });
+    if (!was) { it.classList.add('open'); $('.q', it).setAttribute('aria-expanded', 'true'); }
+    setTimeout(() => ScrollTrigger.refresh(), 520);
+  }));
 
-    _buildUI() {
-      this.container.classList.add('ytp');
-      this.container.tabIndex = 0;
-      this.container.innerHTML = `
-        <div class="ytp-frame"></div>
-        <div class="ytp-overlay"></div>
-        <div class="ytp-spinner"></div>
-        <div class="ytp-controls">
-          <div class="ytp-timeline">
-            <div class="ytp-loaded"></div>
-            <div class="ytp-progress"></div>
-            <input class="ytp-seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek">
-          </div>
-          <div class="ytp-row">
-            <button class="ytp-play" type="button" aria-label="Play">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            </button>
-            <span class="ytp-time">0:00 / 0:00</span>
-            <span class="ytp-spacer"></span>
-            <button class="ytp-mute" type="button" aria-label="Unmute">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M4 9v6h4l5 4V5L8 9Z"/>
-                <path class="ytp-vol-on" d="M17 8q5 4 0 8"/>
-                <path class="ytp-vol-off" d="m17 9 5 6m0-6-5 6" style="display:none"/>
-              </svg>
-            </button>
-            <button class="ytp-full" type="button" aria-label="Fullscreen">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        <button class="ytp-unmute" type="button" aria-label="Unmute and play from start">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M3 9v6h4l5 4V5L8 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.06a4.5 4.5 0 0 0 2.5-4.03zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-          </svg>
-          <span>Click to unmute</span>
-        </button>`;
+  /* footer: animate the WHOLE headline (no per-letter spans, so italic is never clipped) */
+  gsap.from('.footer .big', { y: 60, opacity: 0, duration: 1.2, ease: 'power3.out', scrollTrigger: { trigger: '.footer', start: 'top 85%' } });
+  gsap.from('.social a', { y: 20, opacity: 0, stagger: .08, duration: .7, ease: 'power3.out', scrollTrigger: { trigger: '.social', start: 'top 92%' } });
 
-      const q = (s) => this.container.querySelector(s);
-      this.$ = {
-        frame: q('.ytp-frame'), overlay: q('.ytp-overlay'), controls: q('.ytp-controls'),
-        timeline: q('.ytp-timeline'), loaded: q('.ytp-loaded'), progress: q('.ytp-progress'),
-        seek: q('.ytp-seek'), playBtn: q('.ytp-play'), muteBtn: q('.ytp-mute'),
-        volOn: q('.ytp-vol-on'), volOff: q('.ytp-vol-off'),
-        time: q('.ytp-time'), fullBtn: q('.ytp-full'),
-        unmute: q('.ytp-unmute'),
-      };
-      this._bindUI();
-    }
-
-    _bindUI() {
-      const $ = this.$;
-
-      $.playBtn.addEventListener('click', () => this.toggle());
-
-      $.unmute.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this._unmuteAndRestart();
-      });
-
-      $.overlay.addEventListener('click', () => {
-        if (this.container.classList.contains('is-muted-cta')) {
-          this._unmuteAndRestart();
-          return;
-        }
-        this.toggle();
-      });
-
-      $.muteBtn.addEventListener('click', () => this.toggleMute());
-      $.fullBtn.addEventListener('click', () => this.fullscreen());
-
-      $.seek.addEventListener('input', (e) => {
-        if (!this.state.duration) return;
-        const t = (e.target.value / 1000) * this.state.duration;
-        this.player?.seekTo(t, true);
-        this.state.current = t;
-        this._updateTime();
-      });
-
-      $.timeline.addEventListener('click', (e) => {
-        if (!this.state.duration) return;
-        const r = $.timeline.getBoundingClientRect();
-        const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-        const t = pct * this.state.duration;
-        this.player?.seekTo(t, true);
-        this.state.current = t;
-        this._updateTime();
-      });
-
-      // Keyboard shortcuts
-      this.container.addEventListener('keydown', (e) => {
-        const tag = (e.target.tagName || '').toUpperCase();
-        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(tag)) return;
-        if (e.key === ' ' || e.key === 'k') { e.preventDefault(); this.toggle(); }
-        else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); this.toggleMute(); }
-        else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); this.fullscreen(); }
-        else if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          if (this.player) this.player.seekTo(Math.min(this.state.duration, this.state.current + 10), true);
-        }
-        else if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-          if (this.player) this.player.seekTo(Math.max(0, this.state.current - 10), true);
-        }
-      });
-    }
-
-    async _mount() {
-      await loadYTApi();
-      if (this.destroyed) return;
-      const id = 'ytp-' + Math.random().toString(36).slice(2, 10);
-      this.$.frame.innerHTML = `<div id="${id}"></div>`;
-      this.player = new YT.Player(id, {
-        videoId: this.videoId,
-        playerVars: {
-          autoplay: this.opts.autoplay ? 1 : 0,
-          mute: this.opts.muted ? 1 : 0,
-          controls: 0,
-          modestbranding: 1,
-          rel: 0,
-          playsinline: 1,
-          iv_load_policy: 3,
-          fs: 0,
-          disablekb: 1,
-          showinfo: 0,
-          cc_load_policy: 0,
-          loop: this.opts.loop ? 1 : 0,
-          playlist: this.opts.loop ? this.videoId : undefined,
-          origin: location.origin,
-        },
-        events: {
-          onReady: () => this._onReady(),
-          onStateChange: (e) => this._onStateChange(e),
-        },
-      });
-    }
-
-    _onReady() {
-      if (!this.player) return;
-
-      if (this.opts.muted) {
-        this.player.mute();
-        const hasUnmuted = sessionStorage.getItem('yt_unmuted') === '1';
-        if (hasUnmuted) {
-          setTimeout(() => {
-            if (!this.player || this.destroyed) return;
-            try {
-              this.player.unMute();
-              this.player.setVolume(100);
-              this.state.muted = false;
-              this.$.volOn.style.display = '';
-              this.$.volOff.style.display = 'none';
-              this.$.muteBtn.setAttribute('aria-label', 'Mute');
-            } catch {}
-          }, 400);
-        } else if (this.opts.autoplay) {
-          this.container.classList.add('is-muted-cta');
-        }
-      }
-
-      this.state.duration = this.player.getDuration() || 0;
-      this._updateTime();
-      if (this.opts.autoplay) this.player.playVideo();
-      this._tick = setInterval(() => this._onTick(), 200);
-      this.opts.onReady?.(this);
-    }
-
-    _onTick() {
-      if (!this.player || this.destroyed) return;
-      try {
-        const cur = this.player.getCurrentTime();
-        const dur = this.player.getDuration();
-        const loaded = this.player.getVideoLoadedFraction();
-        if (dur > 0) {
-          this.state.current = cur;
-          this.state.duration = dur;
-          this._updateTime();
-          this.$.loaded.style.width = (loaded * 100) + '%';
-        }
-      } catch {}
-    }
-
-    _onStateChange(e) {
-      const YT = window.YT;
-      if (!YT) return;
-
-      this.state.playing = e.data === YT.PlayerState.PLAYING;
-      this.state.ended   = e.data === YT.PlayerState.ENDED;
-      this.state.paused  = e.data === YT.PlayerState.PAUSED;
-
-      // Global single-player — pause others when this plays
-      if (this.state.playing) {
-        if (_activePlayer && _activePlayer !== this) {
-          try { _activePlayer.pause(); } catch {}
-        }
-        _activePlayer = this;
-      }
-
-      // Buffering spinner (debounced to avoid flicker)
-      if (e.data === YT.PlayerState.BUFFERING) {
-        clearTimeout(this._bufTimeout);
-        this._bufTimeout = setTimeout(() => {
-          if (!this.destroyed) this.container.classList.add('is-buffering');
-        }, 400);
-      } else {
-        clearTimeout(this._bufTimeout);
-        this.container.classList.remove('is-buffering');
-      }
-
-      this._updatePlayBtn();
-      this.container.classList.toggle('is-playing', this.state.playing);
-      this.container.classList.toggle('is-ended', this.state.ended);
-      this.container.classList.toggle('is-paused', this.state.paused);
-    }
-
-    _updatePlayBtn() {
-      const b = this.$.playBtn;
-      const icon = this.state.ended
-        ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7Z"/></svg>'
-        : this.state.playing
-          ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>'
-          : '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-      b.innerHTML = icon;
-      b.setAttribute('aria-label', this.state.ended ? 'Replay' : this.state.playing ? 'Pause' : 'Play');
-    }
-
-    _updateTime() {
-      const { current, duration } = this.state;
-      const pct = duration ? current / duration : 0;
-      this.$.progress.style.width = (pct * 100) + '%';
-      this.$.seek.value = Math.round(pct * 1000);
-      this.$.time.textContent = `${fmt(current)} / ${fmt(duration)}`;
-    }
-
-    play()  { this.player?.playVideo(); }
-    pause() { this.player?.pauseVideo(); }
-
-    toggle() {
-      if (!this.player) return;
-      if (this.state.ended) {
-        this.player.seekTo(0, true);
-        this.player.playVideo();
-        return;
-      }
-      if (this.state.playing) this.player.pauseVideo();
-      else this.player.playVideo();
-    }
-
-    toggleMute() {
-      if (!this.player) return;
-      this.state.muted = !this.state.muted;
-      if (!this.state.muted) {
-        try { sessionStorage.setItem('yt_unmuted', '1'); } catch {}
-      }
-      this.player[this.state.muted ? 'mute' : 'unMute']();
-      this.$.volOn.style.display  = this.state.muted ? 'none' : '';
-      this.$.volOff.style.display = this.state.muted ? '' : 'none';
-      this.$.muteBtn.setAttribute('aria-label', this.state.muted ? 'Unmute' : 'Mute');
-    }
-
-    _unmuteAndRestart() {
-      if (!this.player) return;
-      try {
-        this.player.seekTo(0, true);
-        this.player.unMute();
-        this.player.setVolume(100);
-        this.player.playVideo();
-      } catch {}
-      this.state.muted = false;
-      this.state.ended = false;
-      try { sessionStorage.setItem('yt_unmuted', '1'); } catch {}
-      this.container.classList.remove('is-muted-cta');
-      this.$.volOn.style.display = '';
-      this.$.volOff.style.display = 'none';
-      this.$.muteBtn.setAttribute('aria-label', 'Mute');
-    }
-
-    fullscreen() {
-      const el = this.container;
-      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-      else el.requestFullscreen?.().catch(() => {});
-    }
-
-    destroy() {
-      if (_activePlayer === this) _activePlayer = null;
-      this.destroyed = true;
-      clearInterval(this._tick);
-      clearTimeout(this._bufTimeout);
-      try { this.player?.destroy(); } catch {}
-      this.player = null;
-      this.container.innerHTML = '';
-      this.container.classList.remove('ytp', 'is-playing', 'is-ended', 'is-paused', 'is-buffering', 'is-muted-cta');
-    }
-  }
-
-  const fmt = (n) => {
-    n = Math.max(0, Math.floor(n || 0));
-    return Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
-  };
-
-  // ── 6. Native smooth scroll for anchors ─────────────────────
-  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-    anchor.addEventListener('click', (e) => {
-      const href = anchor.getAttribute('href');
-      if (!href || href === '#') return;
-      const target = document.querySelector(href);
-      if (!target) return;
-      e.preventDefault();
-      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-    });
-  });
-
-  // ── 7. Fetch data ──────────────────────────────────────────
-  fetch('data.json')
-    .then((res) => res.json())
-    .then((data) => {
-      status?.remove();
-      buildFilters(data.categories);
-      buildGrid(data.categories);
-      setupShowreel();
-      applyFilter('motion');
-      if (hasGsap && hasScrollTrigger) initReveals();
-    })
-    .catch((err) => {
-      console.error('Error loading data:', err);
-      if (status) status.textContent = 'Error loading projects. Check console.';
-    });
-
-  // ── 8. Grid builder ────────────────────────────────────────
-  function buildGrid(categories) {
-    const frag = document.createDocumentFragment();
-    let count = 0;
-    for (const [slug, cat] of Object.entries(categories)) {
-      for (const videoId of cat.videos) {
-        count++;
-        const node = template.content.firstElementChild.cloneNode(true);
-        node.dataset.category = slug;
-        const a = node.querySelector('a');
-        a.dataset.youtubeId = videoId;
-        a.href = `https://youtu.be/${videoId}`;
-        const img = node.querySelector('img');
-        img.src = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-        img.onerror = () => { img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; };
-        node.querySelector('.work-index').textContent = `No. ${String(count).padStart(2, '0')}`;
-        node.querySelector('dd[data-field="type"]').textContent = cat.name;
-        const titleEl = node.querySelector('.work-title');
-        titleEl.textContent = 'Loading title...';
-        fetchTitle(videoId, titleEl);
-        ['client', 'duration', 'year'].forEach((field) => {
-          const dd = node.querySelector(`dd[data-field="${field}"]`);
-          if (dd && !dd.textContent.trim()) dd.closest('div').remove();
-        });
-        frag.appendChild(node);
-      }
-    }
-    grid.appendChild(frag);
-    allCards = [...grid.querySelectorAll('.work-card')];
-  }
-
-  // ── 9. Filter builder ──────────────────────────────────────
-  function buildFilters(categories) {
-    filterRow.innerHTML = '';
-    for (const [slug, cat] of Object.entries(categories)) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = cat.name;
-      btn.dataset.filter = slug;
-      btn.setAttribute('aria-pressed', 'false');
-      btn.onclick = () => applyFilter(slug);
-      filterRow.appendChild(btn);
-    }
-  }
-
-  // ── 10. Filter logic (debounced refresh) ───────────────────
-  let _refreshT = null;
-  function applyFilter(activeSlug) {
-    let visibleCount = 0;
-    allCards.forEach((card) => {
-      const match = card.dataset.category === activeSlug;
-      card.hidden = !match;
-      if (match) visibleCount++;
-    });
-    filterRow.querySelectorAll('button').forEach((btn) => {
-      btn.setAttribute('aria-pressed', String(btn.dataset.filter === activeSlug));
-    });
-    if (counter) counter.textContent = `${visibleCount} projects`;
-    if (resetBtn) resetBtn.hidden = true;
-
-    if (hasGsap) {
-      const visible = allCards.filter((c) => !c.hidden);
-      gsap.fromTo(visible,
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.35, ease: 'power2.out', stagger: 0.03, overwrite: true });
-    }
-
-    if (hasScrollTrigger) {
-      clearTimeout(_refreshT);
-      _refreshT = setTimeout(() => ScrollTrigger.refresh(), 120);
-    }
-  }
-
-  // ── 11. Modal with custom player ───────────────────────────
-  function openModal(videoId) {
-    if (!modal || !modalFrame) return;
-    closeModal();
-    const el = document.createElement('div');
-    el.style.cssText = 'width:100%;height:100%;position:relative';
-    modalFrame.appendChild(el);
-    modalPlayer = new YTPlayer(el, videoId, { autoplay: true, muted: true, loop: false });
-    modal.showModal();
-  }
-  function closeModal() {
-    if (modal?.open) modal.close();
-  }
-  function cleanupModal() {
-    if (modalPlayer) { modalPlayer.destroy(); modalPlayer = null; }
-    if (modalFrame) modalFrame.innerHTML = '';
-  }
-
-  closeBtn?.addEventListener('click', closeModal);
-  modal?.addEventListener('close', cleanupModal);
-  modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-
-  document.body.addEventListener('click', (e) => {
-    const link = e.target.closest('[data-lightbox="video"]');
-    if (!link) return;
-    const videoId = link.dataset.youtubeId;
-    if (videoId) { e.preventDefault(); openModal(videoId); }
-  });
-
-  // ── 12. Showreel — reads ID from the hero link, NOT data.json ─
-  function setupShowreel() {
-    const reelLink = document.querySelector('.hero-reel-link');
-    if (!reelLink) return;
-
-    const FALLBACK_ID = 'jrb40f3MnwQ';
-    let videoId = reelLink.dataset.youtubeId || '';
-    if (!videoId) {
-      const m = (reelLink.getAttribute('href') || '').match(
-        /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|v\/))([A-Za-z0-9_-]{11})/
-      );
-      if (m) videoId = m[1];
-    }
-    if (!videoId) videoId = FALLBACK_ID;
-
-    const poster = reelLink.querySelector('img');
-
-    const container = document.createElement('div');
-    container.className = 'hero-reel-player';
-    container.style.cssText = 'position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden';
-
-    if (poster) {
-      poster.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;transition:opacity .5s';
-      container.appendChild(poster);
-    }
-    reelLink.replaceWith(container);
-
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting || container.dataset.loaded) return;
-        container.dataset.loaded = '1';
-
-        const playerEl = document.createElement('div');
-        playerEl.style.cssText = 'position:absolute;inset:0;z-index:2';
-        container.appendChild(playerEl);
-
-        new YTPlayer(playerEl, videoId, {
-          autoplay: true, muted: true, loop: true,
-          onReady: () => {
-            if (poster) {
-              setTimeout(() => { poster.style.opacity = '0'; }, 400);
-              setTimeout(() => poster.remove(), 1100);
-            }
-          },
-        });
-
-        io.disconnect();
-      });
-    }, { rootMargin: '300px' });
-    io.observe(container);
-
-    document.getElementById('showreel')?.removeAttribute('data-placeholder');
-  }
-
-  // ── 13. YouTube title fetch (cached) ───────────────────────
-  async function fetchTitle(videoId, element) {
-    const cacheKey = `yt_title_${videoId}`;
-    const cachedTitle = localStorage.getItem(cacheKey);
-    if (cachedTitle) { element.textContent = cachedTitle; return; }
-    try {
-      const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
-      const data = await res.json();
-      if (data.title) {
-        element.textContent = data.title;
-        localStorage.setItem(cacheKey, data.title);
-      } else element.textContent = 'Watch Video';
-    } catch { element.textContent = 'Watch Video'; }
-  }
-
-  // ── 14. GSAP scroll reveals ────────────────────────────────
-  function initReveals() {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    gsap.utils.toArray('[data-reveal="wipe"]').forEach((el) => {
-      gsap.fromTo(el,
-        { clipPath: 'inset(0 100% 0 0)' },
-        { clipPath: 'inset(0 0% 0 0)', duration: 0.8, ease: 'power3.out',
-          scrollTrigger: { trigger: el, start: 'top 85%' } });
-    });
-    gsap.utils.toArray('[data-reveal="rise"]').forEach((el) => {
-      gsap.fromTo(el,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out',
-          scrollTrigger: { trigger: el, start: 'top 85%' } });
+  /* magnetic buttons (desktop only) */
+  if (!reduced && matchMedia('(hover:hover) and (pointer:fine)').matches) {
+    $$('.btn').forEach(b => {
+      const x = gsap.quickTo(b, 'x', { duration: .5, ease: 'power3' }), y = gsap.quickTo(b, 'y', { duration: .5, ease: 'power3' });
+      b.addEventListener('mousemove', e => { const r = b.getBoundingClientRect(); x((e.clientX - r.left - r.width / 2) * .18); y((e.clientY - r.top - r.height / 2) * .18); });
+      b.addEventListener('mouseleave', () => { x(0); y(0); });
     });
   }
-});
+
+  addEventListener('load', () => ScrollTrigger.refresh());
+  let t; addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => ScrollTrigger.refresh(), 200); });
+};
+document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : boot();
+})();
