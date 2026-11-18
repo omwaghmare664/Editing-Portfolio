@@ -84,6 +84,17 @@ body {
   overflow-x: clip;
 }
 
+.ytp-unmute{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;
+  display:none;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;
+  background:rgba(0,0,0,.72);backdrop-filter:blur(12px);color:#fff;
+  font:600 14px/1 system-ui,sans-serif;border:1px solid rgba(255,255,255,.3);
+  cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.45);
+  transition:transform .2s,background .2s}
+.ytp-unmute:hover{background:rgba(0,0,0,.9);transform:translate(-50%,-50%) scale(1.05)}
+.ytp-unmute svg{flex-shrink:0}
+.ytp.is-muted-cta .ytp-unmute{display:flex}
+.ytp.is-muted-cta .ytp-controls{opacity:0!important;pointer-events:none!important}
+
 h1, h2, h3, h4, p, dl, dd, figure, blockquote {
   margin: 0;
 }
