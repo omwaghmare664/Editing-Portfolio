@@ -6,34 +6,59 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetBtn = document.getElementById('drawerClose');
   const counter = document.querySelector('[data-filter-count]');
   const status = document.querySelector('[data-work-status]');
-  
+
   const modal = document.getElementById('videoModal');
-  const modalFrame = modal.querySelector('.video-modal-frame');
-  const closeBtn = modal.querySelector('.video-modal-close');
+  const modalFrame = modal?.querySelector('.video-modal-frame');
+  const closeBtn = modal?.querySelector('.video-modal-close');
 
   let allCards = [];
+  let lenis = null;
+
+  // --- 0. Smooth scroll (Lenis + GSAP ScrollTrigger) ---
+  const hasGsap = typeof gsap !== 'undefined';
+  const hasScrollTrigger = typeof ScrollTrigger !== 'undefined';
+  const hasLenis = typeof Lenis !== 'undefined';
+
+  if (hasGsap && hasScrollTrigger) gsap.registerPlugin(ScrollTrigger);
+
+  if (hasLenis && hasGsap && hasScrollTrigger) {
+    lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+    });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+  }
+
+  // Smooth anchor scroll
+  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+    anchor.addEventListener('click', (e) => {
+      const href = anchor.getAttribute('href');
+      if (!href || href === '#') return;
+      const target = document.querySelector(href);
+      if (!target) return;
+      e.preventDefault();
+      if (lenis) lenis.scrollTo(target);
+      else target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
 
   // --- 2. Fetch Data ---
   fetch('data.json')
-    .then(res => res.json())
-    .then(data => {
+    .then((res) => res.json())
+    .then((data) => {
       if (status) status.remove();
       buildFilters(data.categories);
       buildGrid(data.categories);
       setShowreel(data.categories);
-      
-      // DEFAULT VIEW: Apply 'motion' filter on load
       applyFilter('motion');
-
-      // Initialize GSAP animations AFTER grid is built
-      if (typeof gsap !== 'undefined') {
-        gsap.registerPlugin(ScrollTrigger);
-        initReveals();
-      }
+      if (hasGsap && hasScrollTrigger) initReveals();
     })
-    .catch(err => {
-      console.error("Error loading data:", err);
-      if (status) status.textContent = "Error loading projects. Check console.";
+    .catch((err) => {
+      console.error('Error loading data:', err);
+      if (status) status.textContent = 'Error loading projects. Check console.';
     });
 
   // --- 3. Build The Grid ---
@@ -45,28 +70,24 @@ document.addEventListener('DOMContentLoaded', () => {
       for (const videoId of cat.videos) {
         count++;
         const node = template.content.firstElementChild.cloneNode(true);
-        
+
         node.dataset.category = slug;
         const a = node.querySelector('a');
         a.dataset.youtubeId = videoId;
         a.href = `https://youtu.be/${videoId}`;
-        
-        // YouTube Poster Image for Work Grid (maxres -> hq fallback)
+
         const img = node.querySelector('img');
         img.src = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
         img.onerror = () => { img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; };
-        
-        // Index and Type
+
         node.querySelector('.work-index').textContent = `No. ${String(count).padStart(2, '0')}`;
         node.querySelector('dd[data-field="type"]').textContent = cat.name;
-        
-        // Title (Fetches from YouTube API in background)
+
         const titleEl = node.querySelector('.work-title');
-        titleEl.textContent = "Loading title...";
+        titleEl.textContent = 'Loading title...';
         fetchTitle(videoId, titleEl);
 
-        // Remove empty fields
-        ['client', 'duration', 'year'].forEach(field => {
+        ['client', 'duration', 'year'].forEach((field) => {
           const dd = node.querySelector(`dd[data-field="${field}"]`);
           if (dd && !dd.textContent.trim()) dd.closest('div').remove();
         });
@@ -81,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- 4. Build Filters ---
   function buildFilters(categories) {
     filterRow.innerHTML = '';
-    
     const createBtn = (slug, label) => {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -91,58 +111,61 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.onclick = () => applyFilter(slug);
       return btn;
     };
-
-    // REMOVED: filterRow.appendChild(createBtn('all', 'All Work'));
-    // Only create buttons for the actual categories
     for (const [slug, cat] of Object.entries(categories)) {
       filterRow.appendChild(createBtn(slug, cat.name));
     }
   }
 
-  // --- 5. Filter Logic ---
+  // --- 5. Filter Logic (+ card stagger animation) ---
   function applyFilter(activeSlug) {
     let visibleCount = 0;
-    
-    allCards.forEach(card => {
+
+    allCards.forEach((card) => {
       const match = card.dataset.category === activeSlug;
       card.hidden = !match;
       if (match) visibleCount++;
     });
 
-    filterRow.querySelectorAll('button').forEach(btn => {
+    filterRow.querySelectorAll('button').forEach((btn) => {
       btn.setAttribute('aria-pressed', String(btn.dataset.filter === activeSlug));
     });
 
     if (counter) counter.textContent = `${visibleCount} projects`;
-    
-    // Since there is no "All Work" button anymore, hide the reset button permanently
     if (resetBtn) resetBtn.hidden = true;
-    
-    if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
+
+    // Animate newly-visible cards so switching filters feels alive
+    if (hasGsap) {
+      const visible = allCards.filter((c) => !c.hidden);
+      gsap.fromTo(
+        visible,
+        { y: 24, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out', stagger: 0.06, overwrite: true }
+      );
+    }
+
+    if (hasScrollTrigger) ScrollTrigger.refresh();
   }
 
-  // Reset button logic removed since "All" view no longer exists
-
-  // --- 6. Fast Modal Player ---
+  // --- 6. Modal — work cards only ---
   function openModal(videoId) {
-    // Inject YouTube Player ONLY on click to save massive amounts of data
+    if (!modal || !modalFrame) return;
     modalFrame.innerHTML = `
-      <iframe 
-        src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1" 
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-        allowfullscreen>
-      </iframe>`;
+      <iframe
+        src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen></iframe>`;
     modal.showModal();
   }
 
   function closeModal() {
+    if (!modal || !modalFrame) return;
     modal.close();
-    modalFrame.innerHTML = ''; // Crucial: Kills video and audio instantly
+    modalFrame.innerHTML = '';
   }
 
-  closeBtn.addEventListener('click', closeModal);
-  modal.addEventListener('close', closeModal);
-  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+  closeBtn?.addEventListener('click', closeModal);
+  modal?.addEventListener('close', closeModal);
+  modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
   document.body.addEventListener('click', (e) => {
     const link = e.target.closest('[data-lightbox="video"]');
@@ -154,45 +177,103 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- 7. Setup Showreel (Custom Thumbnail Preserved) ---
+  // --- 7. SHOWREEL: inline autoplay, no popup ---
   function setShowreel(categories) {
     const firstCategory = Object.values(categories)[0];
-    if (!firstCategory || !firstCategory.videos.length) return;
-    
+    if (!firstCategory?.videos?.length) return;
+
     const videoId = firstCategory.videos[0];
     const reelLink = document.querySelector('.hero-reel-link');
-    const reelImg = reelLink.querySelector('img');
-    
-    // We ONLY update the ID. We do NOT touch reelImg.src anymore.
-    reelLink.dataset.youtubeId = videoId;
-    
-    // Clean up the loading attributes since we are now "loaded"
-    reelImg.removeAttribute('data-placeholder');
-    document.getElementById('showreel').removeAttribute('data-placeholder');
+    if (!reelLink) return;
+
+    // Styles injected once
+    if (!document.getElementById('hero-reel-styles')) {
+      const style = document.createElement('style');
+      style.id = 'hero-reel-styles';
+      style.textContent = `
+        .hero-reel-inline {
+          position: relative;
+          width: 100%;
+          aspect-ratio: 16 / 9;
+          overflow: hidden;
+          background: #000;
+          border-radius: inherit;
+        }
+        .hero-reel-inline > img,
+        .hero-reel-inline > iframe {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          border: 0;
+        }
+        .hero-reel-inline > img {
+          object-fit: cover;
+          z-index: 1;
+          transition: opacity .6s ease;
+        }
+        .hero-reel-inline > iframe { z-index: 2; }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Replace the clickable link with an inline player container
+    const inline = document.createElement('div');
+    inline.className = 'hero-reel-inline';
+
+    const poster = reelLink.querySelector('img');
+    if (poster) inline.appendChild(poster);
+
+    reelLink.replaceWith(inline);
+
+    // Lazy-load autoplay iframe when the reel scrolls into view
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting || inline.dataset.loaded) return;
+        inline.dataset.loaded = '1';
+
+        const iframe = document.createElement('iframe');
+        iframe.src =
+          `https://www.youtube-nocookie.com/embed/${videoId}` +
+          `?autoplay=1&mute=1&loop=1&playlist=${videoId}` +
+          `&controls=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3`;
+        iframe.title = 'Showreel';
+        iframe.allow =
+          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+        iframe.allowFullscreen = true;
+        iframe.loading = 'lazy';
+        iframe.addEventListener('load', () => {
+          if (poster) {
+            poster.style.opacity = '0';
+            setTimeout(() => poster.remove(), 700);
+          }
+        });
+        inline.appendChild(iframe);
+        observer.disconnect();
+      });
+    }, { rootMargin: '300px' });
+
+    observer.observe(inline);
+    document.getElementById('showreel')?.removeAttribute('data-placeholder');
   }
 
   // --- 8. Fetch YouTube Titles (Cached) ---
   async function fetchTitle(videoId, element) {
     const cacheKey = `yt_title_${videoId}`;
     const cachedTitle = localStorage.getItem(cacheKey);
-    
-    if (cachedTitle) {
-      element.textContent = cachedTitle;
-      return;
-    }
+    if (cachedTitle) { element.textContent = cachedTitle; return; }
 
     try {
       const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
       const data = await res.json();
-      
       if (data.title) {
         element.textContent = data.title;
         localStorage.setItem(cacheKey, data.title);
       } else {
-        element.textContent = "Watch Video"; 
+        element.textContent = 'Watch Video';
       }
-    } catch (e) {
-      element.textContent = "Watch Video";
+    } catch {
+      element.textContent = 'Watch Video';
     }
   }
 
@@ -201,17 +282,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (isReduced) return;
 
-    gsap.utils.toArray('[data-reveal="wipe"]').forEach(el => {
-      gsap.fromTo(el, 
-        { clipPath: "inset(0 100% 0 0)" },
-        { clipPath: "inset(0 0% 0 0)", duration: 0.8, ease: "power3.out", scrollTrigger: el }
+    gsap.registerPlugin(ScrollTrigger);
+
+    gsap.utils.toArray('[data-reveal="wipe"]').forEach((el) => {
+      gsap.fromTo(el,
+        { clipPath: 'inset(0 100% 0 0)' },
+        {
+          clipPath: 'inset(0 0% 0 0)',
+          duration: 0.8,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 85%' },
+        }
       );
     });
 
-    gsap.utils.toArray('[data-reveal="rise"]').forEach(el => {
-      gsap.fromTo(el, 
-        { y: 30, opacity: 0 }, 
-        { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", scrollTrigger: el }
+    gsap.utils.toArray('[data-reveal="rise"]').forEach((el) => {
+      gsap.fromTo(el,
+        { y: 30, opacity: 0 },
+        {
+          y: 0, opacity: 1, duration: 0.6, ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 85%' },
+        }
       );
     });
   }
