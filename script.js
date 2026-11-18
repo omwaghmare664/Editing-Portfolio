@@ -15,35 +15,22 @@ document.addEventListener('DOMContentLoaded', () => {
   let lenis = null;
 
   // --- 0. Smooth scroll (Lenis + GSAP ScrollTrigger) ---
-  const hasGsap = typeof gsap !== 'undefined';
-  const hasScrollTrigger = typeof ScrollTrigger !== 'undefined';
-  const hasLenis = typeof Lenis !== 'undefined';
+  // --- 0. GSAP setup + smooth anchor scroll (native) ---
+const hasGsap = typeof gsap !== 'undefined';
+const hasScrollTrigger = typeof ScrollTrigger !== 'undefined';
+if (hasGsap && hasScrollTrigger) gsap.registerPlugin(ScrollTrigger);
 
-  if (hasGsap && hasScrollTrigger) gsap.registerPlugin(ScrollTrigger);
-
-  if (hasLenis && hasGsap && hasScrollTrigger) {
-    lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    });
-    lenis.on('scroll', ScrollTrigger.update);
-    gsap.ticker.add((time) => lenis.raf(time * 1000));
-    gsap.ticker.lagSmoothing(0);
-  }
-
-  // Smooth anchor scroll
-  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-    anchor.addEventListener('click', (e) => {
-      const href = anchor.getAttribute('href');
-      if (!href || href === '#') return;
-      const target = document.querySelector(href);
-      if (!target) return;
-      e.preventDefault();
-      if (lenis) lenis.scrollTo(target);
-      else target.scrollIntoView({ behavior: 'smooth' });
-    });
+document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+  anchor.addEventListener('click', (e) => {
+    const href = anchor.getAttribute('href');
+    if (!href || href === '#') return;
+    const target = document.querySelector(href);
+    if (!target) return;
+    e.preventDefault();
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   });
+});
 
   // --- 2. Fetch Data ---
   fetch('data.json')
